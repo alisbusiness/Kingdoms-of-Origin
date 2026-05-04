@@ -2,7 +2,7 @@
   "order": 2,
   "origins": [
     "origins:empty",
-    "server:king_zeus"
+    "kingdoms_of_origin:king"
   ],
   "enabled_in_gui": false,
   "replace": false,

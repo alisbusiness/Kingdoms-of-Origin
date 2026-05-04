@@ -322,7 +322,7 @@ public final class KingdomCommand {
                 MinecraftServer server = ctx.getSource().getServer();
                 for (String perk : perks.split("[,\\s]+")) {
                     if (perk.isBlank()) continue;
-                    String powerId = perk.contains(":") ? perk : "kingdom:perks/" + perk;
+                    String powerId = perk.contains(":") ? perk : "kingdoms_of_origin:perks/" + perk;
                     server.getCommandManager().executeWithPrefix(server.getCommandSource(), "power grant @a " + powerId);
                 }
             } catch (SQLException e) {

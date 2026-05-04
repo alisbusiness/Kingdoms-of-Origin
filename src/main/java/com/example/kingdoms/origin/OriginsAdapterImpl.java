@@ -74,7 +74,7 @@ public final class OriginsAdapterImpl implements OriginAdapter {
     @Override
     public void assignOriginLayer(ServerPlayerEntity player, String layerId, String originId) {
         requireOrigins();
-        // ORIGINS-API: assigns origin to a specific named layer (e.g., "server:office")
+        // ORIGINS-API: assigns origin to a specific named layer (e.g., "kingdoms_of_origin:office")
         OriginLayer layer = OriginLayers.getLayer(new Identifier(layerId));
         if (layer == null) {
             LOGGER.warn("Layer '{}' not found; cannot assign origin '{}'", layerId, originId);

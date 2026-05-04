@@ -124,7 +124,7 @@ public final class EventListeners {
             // 4. Clean up all old perks
             for (String perk : ALL_PERKS) {
                 server.getCommandManager().executeWithPrefix(server.getCommandSource(), 
-                    "power revoke " + player.getName().getString() + " kingdom:perks/" + perk);
+                    "power revoke " + player.getName().getString() + " kingdoms_of_origin:perks/" + perk);
             }
 
             // 5. Grant active perks
@@ -132,7 +132,7 @@ public final class EventListeners {
             if (activePerks != null && !activePerks.isBlank()) {
                 for (String perk : activePerks.split("[,\\s]+")) {
                     if (perk.isBlank()) continue;
-                    String powerId = perk.contains(":") ? perk : "kingdom:perks/" + perk;
+                    String powerId = perk.contains(":") ? perk : "kingdoms_of_origin:perks/" + perk;
                     server.getCommandManager().executeWithPrefix(server.getCommandSource(), 
                         "power grant " + player.getName().getString() + " " + powerId);
                 }

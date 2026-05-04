@@ -9,8 +9,8 @@ office:
 
 origin_mode:
   type: "layer"        # values: layer, replace
-  king_origin_id: "server:king_zeus"
-  king_layer_id: "server:office"
+  king_origin_id: "kingdoms_of_origin:king"
+  king_layer_id: "kingdoms_of_origin:office"
 
 origin_restore:
   restore_previous_origin_on_term_end: true

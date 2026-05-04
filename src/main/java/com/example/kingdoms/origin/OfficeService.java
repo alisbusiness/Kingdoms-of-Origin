@@ -163,7 +163,7 @@ public final class OfficeService {
                 for (ServerPlayerEntity onlinePlayer : server.getPlayerManager().getPlayerList()) {
                     for (String perk : com.example.kingdoms.ui.EventListeners.ALL_PERKS) {
                         server.getCommandManager().executeWithPrefix(server.getCommandSource(), 
-                            "power revoke " + onlinePlayer.getName().getString() + " kingdom:perks/" + perk);
+                            "power revoke " + onlinePlayer.getName().getString() + " kingdoms_of_origin:perks/" + perk);
                     }
                 }
 

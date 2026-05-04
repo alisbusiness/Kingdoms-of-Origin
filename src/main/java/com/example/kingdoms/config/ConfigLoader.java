@@ -136,8 +136,8 @@ public final class ConfigLoader {
     private static OriginModeConfig parseOriginMode(Map<String, Object> m) {
         return new OriginModeConfig(
             str(m, "type", "layer"),
-            str(m, "king_origin_id", "server:king_zeus"),
-            str(m, "king_layer_id", "server:office")
+            str(m, "king_origin_id", "kingdoms_of_origin:king"),
+            str(m, "king_layer_id", "kingdoms_of_origin:office")
         );
     }
 
