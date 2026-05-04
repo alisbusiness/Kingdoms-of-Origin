@@ -103,6 +103,10 @@ public final class KingdomCommand {
             .requires(Permissions::isPlayer)
             .executes(this::cmdMenu));
 
+        kingdom.then(CommandManager.literal("start-election")
+            .requires(Permissions::isPlayer)
+            .executes(this::cmdStartElection));
+
         // --- Admin sub-commands ---
 
         var admin = CommandManager.literal("admin")
@@ -322,6 +326,25 @@ public final class KingdomCommand {
 
     private int cmdMenu(CommandContext<ServerCommandSource> ctx) {
         return withPlayer(ctx, guiService::openMainMenu);
+    }
+
+    private int cmdStartElection(CommandContext<ServerCommandSource> ctx) {
+        return withPlayer(ctx, player -> {
+            String rulerUuid = officeService.getRuler();
+            if (rulerUuid == null || !rulerUuid.equals(player.getUuidAsString())) {
+                player.sendMessage(net.minecraft.text.Text.literal("Only the King can start elections!").formatted(net.minecraft.util.Formatting.RED), false);
+                return;
+            }
+            try {
+                plugin.startElectionAndSchedule(plugin.getConfig().office().id());
+                player.sendMessage(Messages.electionStarted(), false);
+            } catch (ElectionException e) {
+                player.sendMessage(Messages.error(e.getMessage()), false);
+            } catch (SQLException e) {
+                KingdomsPlugin.LOGGER.error("Start election failed", e);
+                player.sendMessage(Messages.error("A server error occurred."), false);
+            }
+        });
     }
 
     // ------------------------------------------------------------------

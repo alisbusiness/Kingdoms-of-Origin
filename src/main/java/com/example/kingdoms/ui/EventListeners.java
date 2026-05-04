@@ -109,6 +109,18 @@ public final class EventListeners {
                 plugin.getTransferService().validateSync(player);
             }
 
+            // 3.5 Interim King logic: if no ruler and this is the first player ever to join
+            if (rulerUuid == null) {
+                try {
+                    if (plugin.getPersistence().players().findAll().size() <= 1) {
+                        officeService.assignRuler(player.getUuid());
+                        player.sendMessage(net.minecraft.text.Text.literal("You are the interim King! Run /kingdom start-election to begin elections.").formatted(net.minecraft.util.Formatting.GOLD), false);
+                    }
+                } catch (SQLException e) {
+                    LOGGER.error("Failed to assign interim king", e);
+                }
+            }
+
             // 4. Clean up all old perks
             for (String perk : ALL_PERKS) {
                 server.getCommandManager().executeWithPrefix(server.getCommandSource(), 

@@ -10,6 +10,7 @@ Have you ever wanted to rule your server with divine powers? Now you can! Player
 
 ### 1. The Election Cycle
 The core of the mod is the democratic process. Elections happen automatically based on configurable term limits (default: 7 real-world days).
+- **Interim King:** When a server first starts, the first player to join is granted the King origin as an interim ruler. They hold this power until they initiate the first election.
 - **Nomination Phase:** Players use `/kingdom run [slogan]` to declare their candidacy.
 - **Campaign Phase:** A period for candidates to rally support and make promises to the server.
 - **Voting Phase:** Players use `/kingdom vote` to securely and anonymously cast their ballot via an interactive GUI.
@@ -117,6 +118,7 @@ These commands are available to all players:
 | Command | Description |
 |---|---|
 | `/kingdom status` | Show current ruler, term end, and election phase. |
+| `/kingdom start-election` | Start a new election cycle (King only). |
 | `/kingdom ruler` | Show the current ruler's name, term details, and active perks. |
 | `/kingdom candidates` | List candidates in the current election. |
 | `/kingdom run [slogan]` | Register yourself as a candidate (nomination phase only). |
