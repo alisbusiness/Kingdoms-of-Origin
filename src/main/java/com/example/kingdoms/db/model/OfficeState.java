@@ -8,11 +8,12 @@ public final class OfficeState {
     private long termStartedAt;
     private long termEndsAt;
     private String phase;
+    private String activePerks;
 
     public OfficeState() {}
 
     public OfficeState(String officeId, String holderUuid, String holderOriginBeforeOffice,
-                       String activeKingOriginId, long termStartedAt, long termEndsAt, String phase) {
+                       String activeKingOriginId, long termStartedAt, long termEndsAt, String phase, String activePerks) {
         this.officeId = officeId;
         this.holderUuid = holderUuid;
         this.holderOriginBeforeOffice = holderOriginBeforeOffice;
@@ -20,6 +21,7 @@ public final class OfficeState {
         this.termStartedAt = termStartedAt;
         this.termEndsAt = termEndsAt;
         this.phase = phase;
+        this.activePerks = activePerks;
     }
 
     public String getOfficeId() { return officeId; }
@@ -42,4 +44,7 @@ public final class OfficeState {
 
     public String getPhase() { return phase; }
     public void setPhase(String phase) { this.phase = phase; }
+
+    public String getActivePerks() { return activePerks; }
+    public void setActivePerks(String activePerks) { this.activePerks = activePerks; }
 }

@@ -107,7 +107,7 @@ public final class OfficeService {
         long   termEndsAt = now + (long) config.office().termDays() * MS_PER_DAY;
 
         OfficeState state = persistence.officeStates().findByOfficeId(officeId)
-                .orElseGet(() -> new OfficeState(officeId, null, null, null, 0L, 0L, null));
+                .orElseGet(() -> new OfficeState(officeId, null, null, null, 0L, 0L, null, null));
         state.setHolderUuid(playerUUID.toString());
         state.setActiveKingOriginId(config.originMode().kingOriginId());
         state.setTermStartedAt(now);
@@ -159,6 +159,14 @@ public final class OfficeService {
         if (server != null) {
             boolean finalGiveOrb = giveOrb;
             server.execute(() -> {
+                // Revoke perks for all online players
+                for (ServerPlayerEntity onlinePlayer : server.getPlayerManager().getPlayerList()) {
+                    for (String perk : com.example.kingdoms.ui.EventListeners.ALL_PERKS) {
+                        server.getCommandManager().executeWithPrefix(server.getCommandSource(), 
+                            "power revoke " + onlinePlayer.getName().getString() + " kingdom:perks/" + perk);
+                    }
+                }
+
                 ServerPlayerEntity player = server.getPlayerManager().getPlayer(holderUUID);
                 if (player != null) {
                     try {
@@ -177,10 +185,11 @@ public final class OfficeService {
         }
 
         OfficeState state = persistence.officeStates().findByOfficeId(officeId)
-                .orElseGet(() -> new OfficeState(officeId, null, null, null, 0L, 0L, null));
+                .orElseGet(() -> new OfficeState(officeId, null, null, null, 0L, 0L, null, null));
         state.setHolderUuid(null);
         state.setActiveKingOriginId(null);
         state.setHolderOriginBeforeOffice(null);
+        state.setActivePerks(null);
         persistence.officeStates().save(state);
         cachedState = state;
 
@@ -212,6 +221,17 @@ public final class OfficeService {
 
     public String getPhase() {
         return cachedState != null ? cachedState.getPhase() : null;
+    }
+
+    public String getActivePerks() {
+        return cachedState != null ? cachedState.getActivePerks() : null;
+    }
+
+    public void setActivePerks(String activePerks) throws SQLException {
+        if (cachedState != null) {
+            cachedState.setActivePerks(activePerks);
+            persistence.officeStates().save(cachedState);
+        }
     }
 
     // -------------------------------------------------------------------------

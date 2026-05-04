@@ -1,0 +1,9 @@
+{
+  "type": "origins:modify_exhaustion",
+  "name": "Starvation Diet I",
+  "description": "Hunger drains 10% faster.",
+  "modifier": {
+    "operation": "multiply_total",
+    "value": 0.1
+  }
+}

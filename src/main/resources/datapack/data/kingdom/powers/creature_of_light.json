@@ -1,0 +1,58 @@
+{
+  "type": "origins:multiple",
+  "weakness": {
+    "type": "origins:conditioned_effect",
+    "condition": {
+      "type": "origins:brightness",
+      "comparison": "<=",
+      "compare_to": 0.3
+    },
+    "effects": [
+      {
+        "effect": "minecraft:weakness",
+        "amplifier": 4,
+        "is_ambient": false,
+        "show_particles": true
+      },
+      {
+        "effect": "minecraft:slowness",
+        "amplifier": 2,
+        "is_ambient": false,
+        "show_particles": true
+      },
+      {
+        "effect": "minecraft:mining_fatigue",
+        "amplifier": 2,
+        "is_ambient": false,
+        "show_particles": true
+      }
+    ]
+  },
+  "health_penalty": {
+    "type": "origins:attribute",
+    "condition": {
+      "type": "origins:brightness",
+      "comparison": "<=",
+      "compare_to": 0.3
+    },
+    "modifier": {
+      "attribute": "minecraft:generic.max_health",
+      "operation": "multiply_total",
+      "value": -0.5
+    }
+  },
+  "damage_vulnerability": {
+    "type": "origins:modify_damage_taken",
+    "condition": {
+      "type": "origins:brightness",
+      "comparison": "<=",
+      "compare_to": 0.3
+    },
+    "modifier": {
+      "operation": "multiply_total",
+      "value": 0.5
+    }
+  },
+  "name": "Creature of Light",
+  "description": "Your sovereign power is intrinsically tied to the light. If you enter darkness, your max health is halved, you take 50% more damage, and you are inflicted with crippling weakness, slowness, and fatigue."
+}

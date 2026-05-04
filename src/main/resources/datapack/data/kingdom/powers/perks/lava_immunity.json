@@ -1,0 +1,18 @@
+{
+  "type": "origins:action_over_time",
+  "name": "Lava Immunity",
+  "description": "Fire resistance while below Y=15.",
+  "interval": 20,
+  "condition": {
+    "type": "origins:in_block",
+    "block_condition": {
+      "type": "origins:height",
+      "comparison": "<=",
+      "compare_to": 15
+    }
+  },
+  "entity_action": {
+    "type": "origins:execute_command",
+    "command": "effect give @s minecraft:fire_resistance 2 0 true"
+  }
+}

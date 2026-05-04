@@ -1,0 +1,9 @@
+{
+  "type": "origins:modify_break_speed",
+  "modifier": {
+    "operation": "multiply_total",
+    "value": -0.3
+  },
+  "name": "Soft Hands",
+  "description": "You are accustomed to ruling, not manual labor. You mine blocks 30% slower."
+}

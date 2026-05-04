@@ -26,15 +26,6 @@ voting:
   minimum_playtime_minutes: 60
   anonymous_votes: true
 
-random_origin:
-  enabled: true
-  assign_on_first_join: true
-  allowed_origins:
-    - "origins:avian"
-    - "origins:feline"
-  excluded_origins:
-    - "server:king_zeus"
-
 ui:
   use_scoreboard_announcements: true
   use_bossbar_during_election: true

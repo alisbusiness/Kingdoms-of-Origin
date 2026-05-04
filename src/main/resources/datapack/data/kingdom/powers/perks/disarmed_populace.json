@@ -1,0 +1,10 @@
+{
+  "type": "origins:attribute",
+  "name": "Disarmed Populace",
+  "description": "-20% Attack Damage.",
+  "modifier": {
+    "attribute": "minecraft:generic.attack_damage",
+    "operation": "multiply_total",
+    "value": -0.2
+  }
+}

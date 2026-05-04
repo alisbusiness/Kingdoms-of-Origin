@@ -1,0 +1,10 @@
+{
+  "type": "origins:attribute",
+  "name": "Frail Subjects",
+  "description": "-2 Max Health.",
+  "modifier": {
+    "attribute": "minecraft:generic.max_health",
+    "operation": "add",
+    "value": -2
+  }
+}

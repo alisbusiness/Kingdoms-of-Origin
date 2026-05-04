@@ -144,7 +144,7 @@ public final class ElectionService {
             });
 
             long now = clock.instant().toEpochMilli();
-            Candidate candidate = new Candidate(0, electionId, playerUuid, slogan, now);
+            Candidate candidate = new Candidate(0, electionId, playerUuid, slogan, null, now);
             long id = persistence.candidates().insert(candidate);
             candidate.setId(id);
 
@@ -287,7 +287,7 @@ public final class ElectionService {
 
     private void setOfficePhase(String officeId, String phase) throws SQLException {
         OfficeState state = persistence.officeStates().findByOfficeId(officeId)
-            .orElseGet(() -> new OfficeState(officeId, null, null, null, 0L, 0L, null));
+            .orElseGet(() -> new OfficeState(officeId, null, null, null, 0L, 0L, null, null));
         state.setPhase(phase);
         persistence.officeStates().save(state);
     }

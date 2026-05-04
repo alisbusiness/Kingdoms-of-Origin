@@ -38,6 +38,22 @@ public final class EventListeners {
     private int tickCounter = 0;
     private static final int TICKS_PER_MINUTE = 20 * 60;
 
+    public static final String[] ALL_PERKS = {
+        "acrobat", "apple_picker", "aqua_affinity", "arachnid_bane", "blessed_realm",
+        "bountiful_harvest_i", "butchers_blade", "censorship", "creeper_resistance", "curfew",
+        "current_rider", "deep_dark_resistance", "deep_sea_diver", "diamond_luck", "disarmed_populace",
+        "dolphins_grace", "early_bird", "enchanters_wisdom", "enderman_slayer", "fishers_diet",
+        "forced_labor_i", "forced_labor_ii", "fragile_armor", "frail_subjects", "green_thumb",
+        "guardian_slayer", "heavy_taxes_i", "heavy_taxes_ii", "hero_of_the_realm_i", "hero_of_the_realm_ii",
+        "honey_lover", "iron_skin", "lava_immunity", "lumberjack", "master_angler_i",
+        "miners_haste_i", "miners_haste_ii", "miners_haste_iii", "mountaineer", "mushroom_forager",
+        "night_owl", "obsidian_breaker", "ocean_treasure", "oppression_i", "oppression_ii",
+        "ore_doubling", "royal_guard_i", "royal_guard_ii", "royal_vitality_i", "royal_vitality_ii",
+        "seas_bounty_i", "shepherd", "slowed_masses", "spelunkers_glow", "squids_ink",
+        "starvation_diet_i", "starvation_diet_ii", "stout_heart", "swift_messenger", "swift_striker",
+        "tractor", "unbreaking_tools", "undead_slayer", "unlucky_realm", "vegans_grace"
+    };
+
     public EventListeners(
         KingdomsPlugin plugin,
         OfficeService officeService,
@@ -91,6 +107,23 @@ public final class EventListeners {
             String rulerUuid = officeService.getRuler();
             if (rulerUuid != null && rulerUuid.equals(player.getUuidAsString())) {
                 plugin.getTransferService().validateSync(player);
+            }
+
+            // 4. Clean up all old perks
+            for (String perk : ALL_PERKS) {
+                server.getCommandManager().executeWithPrefix(server.getCommandSource(), 
+                    "power revoke " + player.getName().getString() + " kingdom:perks/" + perk);
+            }
+
+            // 5. Grant active perks
+            String activePerks = officeService.getActivePerks();
+            if (activePerks != null && !activePerks.isBlank()) {
+                for (String perk : activePerks.split("[,\\s]+")) {
+                    if (perk.isBlank()) continue;
+                    String powerId = perk.contains(":") ? perk : "kingdom:perks/" + perk;
+                    server.getCommandManager().executeWithPrefix(server.getCommandSource(), 
+                        "power grant " + player.getName().getString() + " " + powerId);
+                }
             }
         });
     }

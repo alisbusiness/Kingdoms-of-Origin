@@ -1,0 +1,13 @@
+{
+  "type": "origins:modify_damage_taken",
+  "name": "Acrobat",
+  "description": "-50% Fall Damage.",
+  "damage_condition": {
+    "type": "origins:name",
+    "name": "fall"
+  },
+  "modifier": {
+    "operation": "multiply_total",
+    "value": -0.5
+  }
+}

@@ -44,13 +44,6 @@ public final class ConfigLoader {
         boolean anonymousVotes
     ) {}
 
-    public record RandomOriginConfig(
-        boolean enabled,
-        boolean assignOnFirstJoin,
-        List<String> allowedOrigins,
-        List<String> excludedOrigins
-    ) {}
-
     public record UiConfig(
         boolean useScoreboardAnnouncements,
         boolean useBossbarDuringElection,
@@ -72,7 +65,7 @@ public final class ConfigLoader {
     private final OriginRestoreConfig originRestore;
     private final TransitionConfig transition;
     private final VotingConfig voting;
-    private final RandomOriginConfig randomOrigin;
+
     private final UiConfig ui;
     private final MapConfig map;
     private final DebugConfig debug;
@@ -83,7 +76,7 @@ public final class ConfigLoader {
         originRestore = parseOriginRestore(section(raw, "origin_restore"));
         transition   = parseTransition(section(raw, "transition"));
         voting       = parseVoting(section(raw, "voting"));
-        randomOrigin = parseRandomOrigin(section(raw, "random_origin"));
+
         ui           = parseUi(section(raw, "ui"));
         map          = parseMap(section(raw, "map"));
         debug        = parseDebug(section(raw, "debug"));
@@ -171,15 +164,6 @@ public final class ConfigLoader {
         );
     }
 
-    private static RandomOriginConfig parseRandomOrigin(Map<String, Object> m) {
-        return new RandomOriginConfig(
-            bool(m, "enabled", true),
-            bool(m, "assign_on_first_join", true),
-            strings(m, "allowed_origins"),
-            strings(m, "excluded_origins")
-        );
-    }
-
     private static UiConfig parseUi(Map<String, Object> m) {
         return new UiConfig(
             bool(m, "use_scoreboard_announcements", true),
@@ -207,7 +191,7 @@ public final class ConfigLoader {
     public OriginRestoreConfig originRestore() { return originRestore; }
     public TransitionConfig transition()     { return transition; }
     public VotingConfig voting()             { return voting; }
-    public RandomOriginConfig randomOrigin() { return randomOrigin; }
+
     public UiConfig ui()                     { return ui; }
     public MapConfig map()                   { return map; }
     public DebugConfig debug()               { return debug; }

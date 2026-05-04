@@ -16,7 +16,7 @@ public final class CandidateRepository {
     }
 
     public List<Candidate> findByElectionId(long electionId) throws SQLException {
-        String sql = "SELECT id, election_id, player_uuid, slogan, created_at " +
+        String sql = "SELECT id, election_id, player_uuid, slogan, promised_perks, created_at " +
                      "FROM candidates WHERE election_id = ? ORDER BY id";
         List<Candidate> results = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -29,7 +29,7 @@ public final class CandidateRepository {
     }
 
     public Optional<Candidate> findByElectionAndPlayer(long electionId, String playerUuid) throws SQLException {
-        String sql = "SELECT id, election_id, player_uuid, slogan, created_at " +
+        String sql = "SELECT id, election_id, player_uuid, slogan, promised_perks, created_at " +
                      "FROM candidates WHERE election_id = ? AND player_uuid = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, electionId);
@@ -42,12 +42,13 @@ public final class CandidateRepository {
     }
 
     public long insert(Candidate candidate) throws SQLException {
-        String sql = "INSERT INTO candidates (election_id, player_uuid, slogan, created_at) VALUES (?,?,?,?)";
+        String sql = "INSERT INTO candidates (election_id, player_uuid, slogan, promised_perks, created_at) VALUES (?,?,?,?,?)";
         try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setLong(1, candidate.getElectionId());
             ps.setString(2, candidate.getPlayerUuid());
             ps.setString(3, candidate.getSlogan());
-            ps.setLong(4, candidate.getCreatedAt());
+            ps.setString(4, candidate.getPromisedPerks());
+            ps.setLong(5, candidate.getCreatedAt());
             ps.executeUpdate();
             try (ResultSet keys = ps.getGeneratedKeys()) {
                 if (keys.next()) return keys.getLong(1);
@@ -69,6 +70,7 @@ public final class CandidateRepository {
             rs.getLong("election_id"),
             rs.getString("player_uuid"),
             rs.getString("slogan"),
+            rs.getString("promised_perks"),
             rs.getLong("created_at")
         );
     }

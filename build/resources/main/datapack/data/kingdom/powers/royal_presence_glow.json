@@ -1,0 +1,17 @@
+{
+  "type": "origins:conditioned_effect",
+  "condition": {
+    "type": "origins:constant",
+    "value": true
+  },
+  "effects": [
+    {
+      "effect": "minecraft:glowing",
+      "amplifier": 0,
+      "is_ambient": true,
+      "show_particles": false
+    }
+  ],
+  "name": "Royal Radiance",
+  "description": "The crown marks you. All can see where you stand."
+}

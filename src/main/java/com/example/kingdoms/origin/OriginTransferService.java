@@ -219,6 +219,6 @@ public final class OriginTransferService {
 
     private OfficeState loadOrCreate(String officeId) throws SQLException {
         return persistence.officeStates().findByOfficeId(officeId)
-                .orElseGet(() -> new OfficeState(officeId, null, null, null, 0L, 0L, null));
+                .orElseGet(() -> new OfficeState(officeId, null, null, null, 0L, 0L, null, null));
     }
 }

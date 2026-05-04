@@ -1,0 +1,10 @@
+{
+  "type": "origins:attribute",
+  "name": "Royal Guard I",
+  "description": "+2 Armor.",
+  "modifier": {
+    "attribute": "minecraft:generic.armor",
+    "operation": "add",
+    "value": 2
+  }
+}

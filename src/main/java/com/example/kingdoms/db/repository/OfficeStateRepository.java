@@ -15,7 +15,7 @@ public final class OfficeStateRepository {
 
     public Optional<OfficeState> findByOfficeId(String officeId) throws SQLException {
         String sql = "SELECT office_id, holder_uuid, holder_origin_before_office, active_king_origin_id, " +
-                     "term_started_at, term_ends_at, phase FROM office_state WHERE office_id = ?";
+                     "term_started_at, term_ends_at, phase, active_perks FROM office_state WHERE office_id = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, officeId);
             try (ResultSet rs = ps.executeQuery()) {
@@ -27,14 +27,15 @@ public final class OfficeStateRepository {
 
     public void save(OfficeState state) throws SQLException {
         String sql = "INSERT INTO office_state (office_id, holder_uuid, holder_origin_before_office, " +
-                     "active_king_origin_id, term_started_at, term_ends_at, phase) VALUES (?,?,?,?,?,?,?) " +
+                     "active_king_origin_id, term_started_at, term_ends_at, phase, active_perks) VALUES (?,?,?,?,?,?,?,?) " +
                      "ON CONFLICT(office_id) DO UPDATE SET " +
                      "holder_uuid=excluded.holder_uuid, " +
                      "holder_origin_before_office=excluded.holder_origin_before_office, " +
                      "active_king_origin_id=excluded.active_king_origin_id, " +
                      "term_started_at=excluded.term_started_at, " +
                      "term_ends_at=excluded.term_ends_at, " +
-                     "phase=excluded.phase";
+                     "phase=excluded.phase, " +
+                     "active_perks=excluded.active_perks";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, state.getOfficeId());
             ps.setString(2, state.getHolderUuid());
@@ -43,6 +44,7 @@ public final class OfficeStateRepository {
             ps.setLong(5, state.getTermStartedAt());
             ps.setLong(6, state.getTermEndsAt());
             ps.setString(7, state.getPhase());
+            ps.setString(8, state.getActivePerks());
             ps.executeUpdate();
         }
     }
@@ -62,7 +64,8 @@ public final class OfficeStateRepository {
             rs.getString("active_king_origin_id"),
             rs.getLong("term_started_at"),
             rs.getLong("term_ends_at"),
-            rs.getString("phase")
+            rs.getString("phase"),
+            rs.getString("active_perks")
         );
     }
 }

@@ -18,6 +18,7 @@ import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.MinecraftServer;
 
 import java.sql.SQLException;
 import java.util.UUID;
@@ -85,6 +86,16 @@ public final class KingdomCommand {
             .requires(Permissions::isPlayer)
             .executes(this::cmdRuler));
 
+        kingdom.then(CommandManager.literal("promise")
+            .requires(Permissions::isPlayer)
+            .then(CommandManager.argument("perks", StringArgumentType.greedyString())
+                .executes(ctx -> cmdPromise(ctx, StringArgumentType.getString(ctx, "perks")))));
+
+        kingdom.then(CommandManager.literal("setperks")
+            .requires(Permissions::isPlayer)
+            .then(CommandManager.argument("perks", StringArgumentType.greedyString())
+                .executes(ctx -> cmdSetPerks(ctx, StringArgumentType.getString(ctx, "perks")))));
+
         kingdom.then(CommandManager.literal("help")
             .executes(this::cmdHelp));
 
@@ -127,10 +138,6 @@ public final class KingdomCommand {
 
         admin.then(CommandManager.literal("debug-sync")
             .executes(this::adminDebugSync));
-
-        admin.then(CommandManager.literal("assign-random-origin")
-            .then(CommandManager.argument("player", EntityArgumentType.player())
-                .executes(ctx -> adminAssignRandomOrigin(ctx, EntityArgumentType.getPlayer(ctx, "player")))));
 
         kingdom.then(admin);
 
@@ -233,8 +240,67 @@ public final class KingdomCommand {
             src.sendMessage(Messages.rulerLine(resolveOrUuid(src, rulerUuid)));
             src.sendMessage(Messages.termEndLine(officeService.getTermEnd()));
             src.sendMessage(Messages.phaseLine(officeService.getPhase()));
+            String activePerks = officeService.getActivePerks();
+            if (activePerks != null && !activePerks.isBlank()) {
+                src.sendMessage(net.minecraft.text.Text.literal("Active Perks: " + activePerks).formatted(net.minecraft.util.Formatting.AQUA));
+            }
         }
         return 1;
+    }
+
+    private int cmdPromise(CommandContext<ServerCommandSource> ctx, String perks) {
+        return withPlayer(ctx, player -> {
+            try {
+                String officeId = plugin.getConfig().office().id();
+                electionService.getCurrentElection(officeId).ifPresentOrElse(election -> {
+                    try {
+                        var candidateOpt = plugin.getPersistence().candidates().findByElectionAndPlayer(election.getId(), player.getUuidAsString());
+                        if (candidateOpt.isPresent()) {
+                            var candidate = candidateOpt.get();
+                            candidate.setPromisedPerks(perks);
+                            plugin.getPersistence().candidates().delete(candidate.getId()); // Delete and re-insert to update
+                            plugin.getPersistence().candidates().insert(candidate);
+                            player.sendMessage(net.minecraft.text.Text.literal("Promised perks updated to: " + perks).formatted(net.minecraft.util.Formatting.GREEN), false);
+                        } else {
+                            player.sendMessage(net.minecraft.text.Text.literal("You must /kingdom run first.").formatted(net.minecraft.util.Formatting.RED), false);
+                        }
+                    } catch (SQLException e) {
+                        player.sendMessage(Messages.error("A server error occurred."), false);
+                    }
+                }, () -> player.sendMessage(Messages.noActiveElection(), false));
+            } catch (SQLException e) {
+                player.sendMessage(Messages.error("A server error occurred."), false);
+            }
+        });
+    }
+
+    private int cmdSetPerks(CommandContext<ServerCommandSource> ctx, String perks) {
+        return withPlayer(ctx, player -> {
+            String rulerUuid = officeService.getRuler();
+            if (rulerUuid == null || !rulerUuid.equals(player.getUuidAsString())) {
+                player.sendMessage(net.minecraft.text.Text.literal("Only the King can set perks!").formatted(net.minecraft.util.Formatting.RED), false);
+                return;
+            }
+            if (officeService.getActivePerks() != null) {
+                player.sendMessage(net.minecraft.text.Text.literal("Perks have already been set for this term!").formatted(net.minecraft.util.Formatting.RED), false);
+                return;
+            }
+            
+            try {
+                officeService.setActivePerks(perks);
+                player.sendMessage(net.minecraft.text.Text.literal("Active perks set to: " + perks).formatted(net.minecraft.util.Formatting.GREEN), false);
+                
+                // Grant powers to all players online
+                MinecraftServer server = ctx.getSource().getServer();
+                for (String perk : perks.split("[,\\s]+")) {
+                    if (perk.isBlank()) continue;
+                    String powerId = perk.contains(":") ? perk : "kingdom:perks/" + perk;
+                    server.getCommandManager().executeWithPrefix(server.getCommandSource(), "power grant @a " + powerId);
+                }
+            } catch (SQLException e) {
+                player.sendMessage(Messages.error("Failed to save active perks."), false);
+            }
+        });
     }
 
     private int cmdHelp(CommandContext<ServerCommandSource> ctx) {
@@ -244,6 +310,8 @@ public final class KingdomCommand {
         src.sendMessage(Messages.helpLine("/kingdom vote",       "Open the voting GUI"));
         src.sendMessage(Messages.helpLine("/kingdom candidates", "List current candidates in chat"));
         src.sendMessage(Messages.helpLine("/kingdom run [slogan]", "Register your candidacy"));
+        src.sendMessage(Messages.helpLine("/kingdom promise <perks>", "Set your promised perks"));
+        src.sendMessage(Messages.helpLine("/kingdom setperks <perks>", "King only: lock in active perks"));
         src.sendMessage(Messages.helpLine("/kingdom ruler",      "Show ruler details"));
         src.sendMessage(Messages.helpLine("/kingdom menu",       "Open the main kingdom GUI"));
         if (Permissions.isAdmin(src)) {
@@ -392,42 +460,6 @@ public final class KingdomCommand {
             src.sendMessage(Messages.debugSynced());
         } else {
             src.sendMessage(Messages.error("Ruler is offline; sync will apply on next login."));
-        }
-        return 1;
-    }
-
-    private int adminAssignRandomOrigin(CommandContext<ServerCommandSource> ctx, ServerPlayerEntity target) {
-        ServerCommandSource src = ctx.getSource();
-        OriginAdapter adapter = plugin.getOriginAdapter();
-        if (adapter == null) {
-            src.sendMessage(Messages.error("Origins mod is not loaded."));
-            return 0;
-        }
-        var allowed = plugin.getConfig().randomOrigin().allowedOrigins();
-        var excluded = plugin.getConfig().randomOrigin().excludedOrigins();
-        var kingOrigin = plugin.getConfig().originMode().kingOriginId();
-
-        java.util.List<String> pool = new java.util.ArrayList<>(allowed);
-        pool.removeAll(excluded);
-        pool.remove(kingOrigin);
-
-        if (pool.isEmpty()) {
-            src.sendMessage(Messages.error("No eligible origins in the pool."));
-            return 0;
-        }
-
-        String chosen = pool.get(java.util.concurrent.ThreadLocalRandom.current().nextInt(pool.size()));
-        try {
-            adapter.assignOrigin(target, chosen);
-            plugin.getPersistence().players().findByUuid(target.getUuidAsString()).ifPresent(p -> {
-                p.setCurrentOriginId(chosen);
-                try { plugin.getPersistence().players().save(p); }
-                catch (SQLException e) { KingdomsPlugin.LOGGER.error("Failed to persist origin", e); }
-            });
-            src.sendMessage(Messages.originAssigned(target.getName().getString(), chosen));
-        } catch (Exception e) {
-            KingdomsPlugin.LOGGER.error("Assign random origin failed", e);
-            src.sendMessage(Messages.error("Failed to assign origin: " + e.getMessage()));
         }
         return 1;
     }

@@ -5,15 +5,17 @@ public final class Candidate {
     private long electionId;
     private String playerUuid;
     private String slogan;
+    private String promisedPerks;
     private long createdAt;
 
     public Candidate() {}
 
-    public Candidate(long id, long electionId, String playerUuid, String slogan, long createdAt) {
+    public Candidate(long id, long electionId, String playerUuid, String slogan, String promisedPerks, long createdAt) {
         this.id = id;
         this.electionId = electionId;
         this.playerUuid = playerUuid;
         this.slogan = slogan;
+        this.promisedPerks = promisedPerks;
         this.createdAt = createdAt;
     }
 
@@ -28,6 +30,9 @@ public final class Candidate {
 
     public String getSlogan() { return slogan; }
     public void setSlogan(String slogan) { this.slogan = slogan; }
+
+    public String getPromisedPerks() { return promisedPerks; }
+    public void setPromisedPerks(String promisedPerks) { this.promisedPerks = promisedPerks; }
 
     public long getCreatedAt() { return createdAt; }
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }

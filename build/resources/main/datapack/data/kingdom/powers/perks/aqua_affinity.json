@@ -1,0 +1,13 @@
+{
+  "type": "origins:modify_break_speed",
+  "name": "Aqua Affinity",
+  "description": "Normal mining speed underwater.",
+  "condition": {
+    "type": "origins:submerged_in",
+    "fluid": "minecraft:water"
+  },
+  "modifier": {
+    "operation": "multiply_total",
+    "value": 5.0
+  }
+}

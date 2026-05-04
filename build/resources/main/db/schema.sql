@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS office_state (
   active_king_origin_id TEXT,
   term_started_at INTEGER,
   term_ends_at INTEGER,
-  phase TEXT
+  phase TEXT,
+  active_perks TEXT
 );
 
 CREATE TABLE IF NOT EXISTS elections (
@@ -34,6 +35,7 @@ CREATE TABLE IF NOT EXISTS candidates (
   election_id INTEGER,
   player_uuid TEXT,
   slogan TEXT,
+  promised_perks TEXT,
   created_at INTEGER
 );
 

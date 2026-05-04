@@ -47,22 +47,8 @@ public final class PlayerStateService {
             record.setUsername(username);
             record.setUpdatedAt(now);
 
-            if (!record.isFirstJoinOriginAssigned()
-                    && adapter != null
-                    && config.randomOrigin().enabled()
-                    && config.randomOrigin().assignOnFirstJoin()) {
-
-                String chosen = pickRandomOrigin();
-                if (chosen != null) {
-                    try {
-                        adapter.assignOrigin(player, chosen);
-                        record.setCurrentOriginId(chosen);
-                        record.setFirstJoinOriginAssigned(true);
-                        LOGGER.info("Assigned random origin '{}' to new player {}", chosen, username);
-                    } catch (Exception e) {
-                        LOGGER.error("Failed to assign random origin '{}' to {}", chosen, uuid, e);
-                    }
-                }
+            if (!record.isFirstJoinOriginAssigned()) {
+                record.setFirstJoinOriginAssigned(true);
             }
 
             persistence.players().save(record);
@@ -71,14 +57,4 @@ public final class PlayerStateService {
         }
     }
 
-    private String pickRandomOrigin() {
-        List<String> candidates = new ArrayList<>(config.randomOrigin().allowedOrigins());
-        candidates.removeAll(config.randomOrigin().excludedOrigins());
-        candidates.remove(config.originMode().kingOriginId());
-        if (candidates.isEmpty()) {
-            LOGGER.warn("No eligible origins remain after exclusions; skipping random assignment");
-            return null;
-        }
-        return candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
-    }
 }

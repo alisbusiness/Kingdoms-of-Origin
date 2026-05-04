@@ -1,0 +1,10 @@
+{
+  "type": "origins:action_over_time",
+  "name": "Censorship",
+  "description": "Cannot use chat.",
+  "interval": 100,
+  "entity_action": {
+    "type": "origins:execute_command",
+    "command": "title @s actionbar {\"text\":\"Censorship is active. Speak carefully.\",\"color\":\"red\"}"
+  }
+}

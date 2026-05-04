@@ -1,0 +1,10 @@
+{
+  "type": "origins:attribute",
+  "name": "Mountaineer",
+  "description": "Step height increased.",
+  "modifier": {
+    "attribute": "minecraft:generic.step_height",
+    "operation": "add",
+    "value": 0.5
+  }
+}

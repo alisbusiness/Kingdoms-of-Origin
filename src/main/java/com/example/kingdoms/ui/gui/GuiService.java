@@ -137,9 +137,15 @@ public final class GuiService {
             Candidate c = candidates.get(i);
             String name   = resolvePlayerName(player, c.getPlayerUuid());
             String slogan = c.getSlogan();
-            List<Text> lore = slogan != null && !slogan.isBlank()
-                ? List.of(Text.literal(slogan).formatted(Formatting.GRAY))
-                : List.of();
+            String perks = c.getPromisedPerks();
+            
+            java.util.List<Text> lore = new java.util.ArrayList<>();
+            if (slogan != null && !slogan.isBlank()) {
+                lore.add(Text.literal(slogan).formatted(Formatting.GRAY));
+            }
+            if (perks != null && !perks.isBlank()) {
+                lore.add(Text.literal("Promises: " + perks).formatted(Formatting.AQUA));
+            }
             inv.setStack(i, headStack(c.getPlayerUuid(), name, lore));
         }
 
@@ -165,9 +171,15 @@ public final class GuiService {
 
         String name = resolvePlayerName(player, candidate.getPlayerUuid());
         String slogan = candidate.getSlogan();
-        List<Text> lore = slogan != null && !slogan.isBlank()
-            ? List.of(Text.literal(slogan).formatted(Formatting.ITALIC))
-            : List.of();
+        String perks = candidate.getPromisedPerks();
+        
+        java.util.List<Text> lore = new java.util.ArrayList<>();
+        if (slogan != null && !slogan.isBlank()) {
+            lore.add(Text.literal(slogan).formatted(Formatting.ITALIC));
+        }
+        if (perks != null && !perks.isBlank()) {
+            lore.add(Text.literal("Promises: " + perks).formatted(Formatting.AQUA));
+        }
 
         inv.setStack(4, headStack(candidate.getPlayerUuid(), name, lore));
 

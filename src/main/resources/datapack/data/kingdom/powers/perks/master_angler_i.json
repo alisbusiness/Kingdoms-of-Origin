@@ -1,0 +1,10 @@
+{
+  "type": "origins:action_over_time",
+  "name": "Master Angler I",
+  "description": "Constant Lure I effect.",
+  "interval": 100,
+  "entity_action": {
+    "type": "origins:execute_command",
+    "command": "effect give @s minecraft:luck 6 0 true"
+  }
+}
