@@ -7,10 +7,13 @@
   "authors": [],
   "contact": {},
   "license": "MIT",
-  "environment": "server",
+  "environment": "*",
   "entrypoints": {
     "main": [
       "com.example.kingdoms.KingdomsPlugin"
+    ],
+    "client": [
+      "com.example.kingdoms.client.KingdomsClient"
     ]
   },
   "depends": {

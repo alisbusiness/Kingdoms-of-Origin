@@ -1,6 +1,6 @@
 {
   "type": "origins:multiple",
-  "weakness": {
+  "darkness_curse": {
     "type": "origins:conditioned_effect",
     "condition": {
       "type": "origins:brightness",
@@ -28,25 +28,15 @@
       }
     ]
   },
-  "health_penalty": {
-    "type": "origins:attribute",
-    "condition": {
-      "type": "origins:brightness",
-      "comparison": "<=",
-      "compare_to": 0.3
-    },
-    "modifier": {
-      "attribute": "minecraft:generic.max_health",
-      "operation": "multiply_total",
-      "value": -0.5
-    }
-  },
-  "damage_vulnerability": {
+  "darkness_vulnerability": {
     "type": "origins:modify_damage_taken",
-    "condition": {
-      "type": "origins:brightness",
-      "comparison": "<=",
-      "compare_to": 0.3
+    "bientity_condition": {
+      "type": "origins:target_condition",
+      "condition": {
+        "type": "origins:brightness",
+        "comparison": "<=",
+        "compare_to": 0.3
+      }
     },
     "modifier": {
       "operation": "multiply_total",
@@ -54,5 +44,5 @@
     }
   },
   "name": "Creature of Light",
-  "description": "Your sovereign power is intrinsically tied to the light. If you enter darkness, your max health is halved, you take 50% more damage, and you are inflicted with crippling weakness, slowness, and fatigue."
+  "description": "Your sovereign power is tied to the light. In darkness you are afflicted with crippling weakness, slowness, and mining fatigue, and you take 50% more damage from all sources."
 }

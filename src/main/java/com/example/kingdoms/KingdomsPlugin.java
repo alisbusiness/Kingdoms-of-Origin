@@ -12,6 +12,7 @@ import com.example.kingdoms.origin.PlayerStateService;
 import com.example.kingdoms.schedule.ScheduleService;
 import com.example.kingdoms.schedule.StartupRecoveryService;
 import com.example.kingdoms.map.MapIntegrationService;
+import com.example.kingdoms.network.ServerNetworking;
 import com.example.kingdoms.ui.AnnouncementService;
 import com.example.kingdoms.ui.EventListeners;
 import com.example.kingdoms.ui.command.KingdomCommand;
@@ -107,6 +108,8 @@ public class KingdomsPlugin implements ModInitializer {
         } else {
             LOGGER.warn("Origins mod not loaded; origin assignment features are disabled.");
         }
+
+        ServerNetworking.register(originAdapter);
 
         transferService    = new OriginTransferService(originAdapter, persistence, config);
         officeService      = new OfficeService(persistence, config, electionService, transferService, clock);

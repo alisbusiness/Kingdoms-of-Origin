@@ -21,7 +21,11 @@
       "Bash(unzip -p /tmp/apoli.jar fabric.mod.json)",
       "Bash(unzip -p /tmp/apoli.jar \"META-INF/jars/calio-1.11.2+mc.1.20.x.jar\")",
       "Bash(unzip -p /tmp/apoli.jar \"META-INF/jars/cardinal-components-base-5.2.1.jar\")",
-      "Bash(unzip -p /tmp/apoli.jar \"META-INF/jars/cardinal-components-entity-5.2.1.jar\")"
+      "Bash(unzip -p /tmp/apoli.jar \"META-INF/jars/cardinal-components-entity-5.2.1.jar\")",
+      "Bash(gh release *)",
+      "Bash(gh repo *)",
+      "Bash(gh auth *)",
+      "Bash(./gradlew build *)"
     ]
   }
 }
