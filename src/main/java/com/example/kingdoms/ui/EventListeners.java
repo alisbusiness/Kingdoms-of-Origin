@@ -106,7 +106,7 @@ public final class EventListeners {
             // 3. Validate king origin sync for the ruler on login
             String rulerUuid = officeService.getRuler();
             if (rulerUuid != null && rulerUuid.equals(player.getUuidAsString())) {
-                plugin.getTransferService().validateSync(player);
+                server.execute(() -> plugin.getTransferService().validateSync(player));
             }
 
             // 3.5 Interim King logic: if no ruler and this is the first player ever to join
@@ -115,6 +115,9 @@ public final class EventListeners {
                     if (plugin.getPersistence().players().findAll().size() <= 1) {
                         officeService.assignRuler(player.getUuid());
                         player.sendMessage(net.minecraft.text.Text.literal("You are the interim King! Run /kingdom start-election to begin elections.").formatted(net.minecraft.util.Formatting.GOLD), false);
+                        // Re-validate after assignment so the King origin is actually applied,
+                        // even if Origins' first-join flow tries to overwrite it.
+                        server.execute(() -> plugin.getTransferService().validateSync(player));
                     }
                 } catch (SQLException e) {
                     LOGGER.error("Failed to assign interim king", e);

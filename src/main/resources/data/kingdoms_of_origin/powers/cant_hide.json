@@ -1,6 +1,8 @@
 {
   "type": "origins:effect_immunity",
-  "effect": "minecraft:invisibility",
+  "effects": [
+    "minecraft:invisibility"
+  ],
   "name": "Undeniable Presence",
-  "description": "A king cannot hide from his people \u2014 or his enemies."
+  "description": "A king cannot hide from his people — or his enemies."
 }

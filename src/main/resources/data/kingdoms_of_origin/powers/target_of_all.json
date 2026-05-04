@@ -1,10 +1,13 @@
 {
-  "type": "origins:attribute",
+  "type": "origins:modify_damage_taken",
+  "damage_condition": {
+    "type": "origins:projectile",
+    "inverted": true
+  },
   "modifier": {
-    "attribute": "minecraft:generic.knockback_resistance",
-    "operation": "addition",
-    "value": -0.2
+    "operation": "multiply_base",
+    "value": 0.25
   },
   "name": "Mark of the Crown",
-  "description": "Enemies are drawn to power. You are never ignored."
+  "description": "Enemies are drawn to power. You take 25% extra damage from melee attacks."
 }
