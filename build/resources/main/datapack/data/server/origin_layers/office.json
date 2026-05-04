@@ -1,0 +1,14 @@
+{
+  "order": 2,
+  "origins": [
+    "origins:empty",
+    "server:king_zeus"
+  ],
+  "enabled_in_gui": false,
+  "replace": false,
+  "hidden": true,
+  "default_origin": "origins:empty",
+  "name": "Office",
+  "missing_name": "No Office",
+  "missing_description": "This player holds no office."
+}

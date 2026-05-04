@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew jar *)",
+      "Bash(gradle wrapper *)",
+      "Bash(java -version)",
+      "Read(//usr/local/bin/**)",
+      "Bash(/usr/libexec/java_home -V)",
+      "Bash(./gradlew compileJava)",
+      "Bash(/usr/libexec/java_home)",
+      "Bash(export JAVA_HOME=$\\(/usr/libexec/java_home 2>/dev/null || echo \"\"\\))",
+      "Read(//Library/Java/JavaVirtualMachines/**)",
+      "Read(//Users/ali/.sdkman/candidates/**)",
+      "Read(//opt/homebrew/opt/**)",
+      "Bash(jar tf *)",
+      "Bash(grep \"\\\\.class$\")",
+      "Bash(javap -cp libs/origins-fabric-1.10.1+1.20.x.jar io.github.apace100.origins.origin.OriginRegistry)",
+      "Bash(jar xf *)",
+      "Bash(unzip -p libs/origins-fabric-1.10.1+1.20.x.jar fabric.mod.json)",
+      "Bash(unzip -p libs/origins-fabric-1.10.1+1.20.x.jar \"META-INF/jars/apoli-2.9.2+mc.1.20.x.jar\")",
+      "Bash(unzip -p /tmp/apoli.jar fabric.mod.json)",
+      "Bash(unzip -p /tmp/apoli.jar \"META-INF/jars/calio-1.11.2+mc.1.20.x.jar\")",
+      "Bash(unzip -p /tmp/apoli.jar \"META-INF/jars/cardinal-components-base-5.2.1.jar\")",
+      "Bash(unzip -p /tmp/apoli.jar \"META-INF/jars/cardinal-components-entity-5.2.1.jar\")"
+    ]
+  }
+}

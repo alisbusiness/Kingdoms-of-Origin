@@ -1,0 +1,7 @@
+{
+  "type": "origins:elytra",
+  "render_elytra": true,
+  "name": "Divine Wings",
+  "description": "The King may soar through the skies as if wearing an elytra.",
+  "hidden": false
+}

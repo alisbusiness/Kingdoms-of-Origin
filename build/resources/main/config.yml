@@ -1,0 +1,49 @@
+office:
+  id: "king"
+  display_name: "King"
+  term_days: 7
+  election_enabled: true
+  nomination_days: 2
+  campaign_days: 2
+  voting_days: 1
+
+origin_mode:
+  type: "layer"        # values: layer, replace
+  king_origin_id: "server:king_zeus"
+  king_layer_id: "server:office"
+
+origin_restore:
+  restore_previous_origin_on_term_end: true
+  clear_king_origin_on_term_end: true
+
+transition:
+  give_orb_on_transfer: true
+  give_orb_on_abdication: true
+  give_orb_on_forced_removal: false
+
+voting:
+  system: "plurality"
+  minimum_playtime_minutes: 60
+  anonymous_votes: true
+
+random_origin:
+  enabled: true
+  assign_on_first_join: true
+  allowed_origins:
+    - "origins:avian"
+    - "origins:feline"
+  excluded_origins:
+    - "server:king_zeus"
+
+ui:
+  use_scoreboard_announcements: true
+  use_bossbar_during_election: true
+  send_chat_broadcasts: true
+
+map:
+  provider: "bluemap"   # values: bluemap, dynmap, none
+  show_capital_marker: true
+
+debug:
+  log_origin_transfers: true
+  log_gui_actions: false
