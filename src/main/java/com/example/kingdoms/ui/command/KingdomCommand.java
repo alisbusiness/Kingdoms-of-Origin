@@ -88,11 +88,13 @@ public final class KingdomCommand {
 
         kingdom.then(CommandManager.literal("promise")
             .requires(Permissions::isPlayer)
+            .executes(this::cmdPromiseMenu)
             .then(CommandManager.argument("perks", StringArgumentType.greedyString())
                 .executes(ctx -> cmdPromise(ctx, StringArgumentType.getString(ctx, "perks")))));
 
         kingdom.then(CommandManager.literal("setperks")
             .requires(Permissions::isPlayer)
+            .executes(this::cmdSetPerksMenu)
             .then(CommandManager.argument("perks", StringArgumentType.greedyString())
                 .executes(ctx -> cmdSetPerks(ctx, StringArgumentType.getString(ctx, "perks")))));
 
@@ -252,8 +254,19 @@ public final class KingdomCommand {
         return 1;
     }
 
+    private int cmdPromiseMenu(CommandContext<ServerCommandSource> ctx) {
+        return withPlayer(ctx, player -> guiService.openPerkSelectionMenu(player, false, 0));
+    }
+
     private int cmdPromise(CommandContext<ServerCommandSource> ctx, String perks) {
         return withPlayer(ctx, player -> {
+            String[] perksArr = perks.split("[,\\s]+");
+            long validCount = java.util.Arrays.stream(perksArr).filter(p -> !p.isBlank()).count();
+            if (validCount > 4) {
+                player.sendMessage(net.minecraft.text.Text.literal("You can only promise up to 4 perks!").formatted(net.minecraft.util.Formatting.RED), false);
+                return;
+            }
+
             try {
                 String officeId = plugin.getConfig().office().id();
                 electionService.getCurrentElection(officeId).ifPresentOrElse(election -> {
@@ -278,8 +291,19 @@ public final class KingdomCommand {
         });
     }
 
+    private int cmdSetPerksMenu(CommandContext<ServerCommandSource> ctx) {
+        return withPlayer(ctx, player -> guiService.openPerkSelectionMenu(player, true, 0));
+    }
+
     private int cmdSetPerks(CommandContext<ServerCommandSource> ctx, String perks) {
         return withPlayer(ctx, player -> {
+            String[] perksArr = perks.split("[,\\s]+");
+            long validCount = java.util.Arrays.stream(perksArr).filter(p -> !p.isBlank()).count();
+            if (validCount > 4) {
+                player.sendMessage(net.minecraft.text.Text.literal("You can only set up to 4 perks!").formatted(net.minecraft.util.Formatting.RED), false);
+                return;
+            }
+
             String rulerUuid = officeService.getRuler();
             if (rulerUuid == null || !rulerUuid.equals(player.getUuidAsString())) {
                 player.sendMessage(net.minecraft.text.Text.literal("Only the King can set perks!").formatted(net.minecraft.util.Formatting.RED), false);

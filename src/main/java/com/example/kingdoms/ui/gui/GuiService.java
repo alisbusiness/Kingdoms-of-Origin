@@ -35,6 +35,8 @@ public final class GuiService {
     private final OfficeService officeService;
     private final AnnouncementService announcementService;
     private final KingdomsPlugin plugin;
+    
+    private final java.util.Map<UUID, java.util.Set<String>> activePerkSelections = new java.util.concurrent.ConcurrentHashMap<>();
 
     public GuiService(
         ElectionService electionService,
@@ -96,11 +98,34 @@ public final class GuiService {
                 List.of(Text.literal("Access your administrative panel.").formatted(Formatting.GRAY))));
         }
 
-        // Slot 17 — History placeholder
+        // Slot 14 — Run for Office or Manage Promises
+        if (electionPhase == ElectionPhase.NOMINATION || electionPhase == ElectionPhase.CAMPAIGN) {
+            boolean isCandidate = false;
+            try {
+                String officeId = plugin.getConfig().office().id();
+                var electionOpt = electionService.getCurrentElection(officeId);
+                if (electionOpt.isPresent()) {
+                    long electionId = electionOpt.get().getId();
+                    isCandidate = plugin.getPersistence().candidates()
+                        .findByElectionAndPlayer(electionId, player.getUuidAsString()).isPresent();
+                }
+            } catch (SQLException ignored) {}
+
+            if (isCandidate) {
+                inv.setStack(14, namedStack(Items.WRITABLE_BOOK,
+                    Text.literal("Manage Promises").formatted(Formatting.GOLD, Formatting.BOLD),
+                    List.of(Text.literal("Update your campaign promises.").formatted(Formatting.GRAY))));
+            } else {
+                inv.setStack(14, namedStack(Items.PAPER,
+                    Text.literal("Run for Office").formatted(Formatting.GOLD, Formatting.BOLD),
+                    List.of(Text.literal("Register as a candidate.").formatted(Formatting.GRAY))));
+            }
+        }
+
+        // Slot 17 — History
         inv.setStack(17, namedStack(Items.WRITABLE_BOOK,
             Messages.guiHistoryButton(),
-            List.of(Text.literal("View kingdom history.").formatted(Formatting.GRAY),
-                    Text.literal("(Coming soon)").formatted(Formatting.DARK_GRAY))));
+            List.of(Text.literal("View kingdom history.").formatted(Formatting.GRAY))));
 
         openScreen(player, inv, 3, Messages.guiTitle("Kingdom Politics"), (slot, clicker) -> {
             switch (slot) {
@@ -112,12 +137,38 @@ public final class GuiService {
                     }
                 }
                 case 13 -> openCandidateList(clicker);
+                case 14 -> {
+                    if (ElectionPhase.fromString(officeService.getPhase()) == ElectionPhase.NOMINATION ||
+                        ElectionPhase.fromString(officeService.getPhase()) == ElectionPhase.CAMPAIGN) {
+                        
+                        boolean isCandidate = false;
+                        try {
+                            String officeId = plugin.getConfig().office().id();
+                            var electionOpt = electionService.getCurrentElection(officeId);
+                            if (electionOpt.isPresent()) {
+                                isCandidate = plugin.getPersistence().candidates()
+                                    .findByElectionAndPlayer(electionOpt.get().getId(), clicker.getUuidAsString()).isPresent();
+                            }
+                        } catch (SQLException ignored) {}
+                        
+                        if (isCandidate) {
+                            openPerkSelectionMenu(clicker, false, 0);
+                        } else {
+                            clicker.closeHandledScreen();
+                            MinecraftServer server = clicker.getServer();
+                            if (server != null) {
+                                server.getCommandManager().executeWithPrefix(clicker.getCommandSource(), "kingdom run");
+                            }
+                        }
+                    }
+                }
                 case 15 -> {
                     if (officeService.getRuler() != null
                             && officeService.getRuler().equals(clicker.getUuidAsString())) {
                         openRulerPanel(clicker);
                     }
                 }
+                case 17 -> openHistoryMenu(clicker, 0);
                 default -> {}
             }
         });
@@ -229,18 +280,210 @@ public final class GuiService {
             Messages.guiBroadcastSpeech(),
             List.of(Text.literal("Broadcast a message to the entire server.").formatted(Formatting.GRAY))));
 
-        // Placeholder decree slots 13, 14, 15, 16
-        for (int slot : new int[]{13, 14, 15, 16}) {
-            inv.setStack(slot, namedStack(Items.GRAY_STAINED_GLASS_PANE,
-                Messages.guiComingSoon(),
-                List.of(Text.literal("Future decree options.").formatted(Formatting.DARK_GRAY))));
-        }
+        // Slot 13 — Set Active Perks
+        inv.setStack(13, namedStack(Items.EMERALD,
+            Text.literal("Set Active Perks").formatted(Formatting.GREEN),
+            List.of(Text.literal("Select the 4 perks for your term.").formatted(Formatting.GRAY))));
+
+        // Slot 14 — Abdicate
+        inv.setStack(14, namedStack(Items.IRON_DOOR,
+            Text.literal("Step Down").formatted(Formatting.RED, Formatting.BOLD),
+            List.of(Text.literal("Abdicate the throne.").formatted(Formatting.GRAY))));
+
+        // Slot 15 — Start Election
+        inv.setStack(15, namedStack(Items.BEACON,
+            Text.literal("Start Election").formatted(Formatting.GOLD, Formatting.BOLD),
+            List.of(Text.literal("Begin a new election cycle.").formatted(Formatting.GRAY))));
+
+        // Slot 16 — Empty
+        inv.setStack(16, namedStack(Items.GRAY_STAINED_GLASS_PANE,
+            Text.literal(""),
+            List.of()));
 
         openScreen(player, inv, 3, Messages.guiTitle("Ruler Panel"), (slot, clicker) -> {
             if (slot == 11) {
                 clicker.closeHandledScreen();
                 plugin.getEventListeners().setPendingSpeech(clicker.getUuid());
                 clicker.sendMessage(Messages.speechPrompt(), false);
+            } else if (slot == 13) {
+                openPerkSelectionMenu(clicker, true, 0);
+            } else if (slot == 14) {
+                clicker.closeHandledScreen();
+                try {
+                    officeService.removeRuler(com.example.kingdoms.origin.OfficeService.RemovalReason.ABDICATION);
+                    clicker.sendMessage(Text.literal("You have abdicated the throne.").formatted(Formatting.YELLOW), false);
+                } catch (SQLException e) {
+                    clicker.sendMessage(Messages.error("A server error occurred."), false);
+                }
+            } else if (slot == 15) {
+                clicker.closeHandledScreen();
+                MinecraftServer server = clicker.getServer();
+                if (server != null) {
+                    server.getCommandManager().executeWithPrefix(clicker.getCommandSource(), "kingdom start-election");
+                }
+            }
+        });
+    }
+
+    // ------------------------------------------------------------------
+    // e. Perk selection menu
+    // ------------------------------------------------------------------
+
+    public void openPerkSelectionMenu(ServerPlayerEntity player, boolean isSetPerks, int page) {
+        java.util.Set<String> selected = activePerkSelections.computeIfAbsent(player.getUuid(), k -> new java.util.HashSet<>());
+        int totalPerks = com.example.kingdoms.ui.EventListeners.ALL_PERKS.length;
+        int perksPerPage = 45;
+        int totalPages = (int) Math.ceil((double) totalPerks / perksPerPage);
+        
+        SimpleInventory inv = new SimpleInventory(54);
+        
+        int startIndex = page * perksPerPage;
+        int endIndex = Math.min(startIndex + perksPerPage, totalPerks);
+        
+        for (int i = startIndex; i < endIndex; i++) {
+            String perk = com.example.kingdoms.ui.EventListeners.ALL_PERKS[i];
+            boolean isSelected = selected.contains(perk);
+            
+            ItemStack stack = namedStack(isSelected ? Items.ENCHANTED_BOOK : Items.BOOK,
+                Text.literal(perk).formatted(isSelected ? Formatting.GREEN : Formatting.YELLOW),
+                List.of(
+                    Text.literal(isSelected ? "Click to deselect" : "Click to select").formatted(Formatting.GRAY)
+                ));
+            if (isSelected) {
+                stack.addEnchantment(net.minecraft.enchantment.Enchantments.UNBREAKING, 1);
+                stack.getOrCreateNbt().putInt("HideFlags", 1); // Hide enchantments
+            }
+            inv.setStack(i - startIndex, stack);
+        }
+        
+        // Navigation & Confirmation
+        if (page > 0) {
+            inv.setStack(45, namedStack(Items.ARROW, Text.literal("Previous Page").formatted(Formatting.WHITE), List.of()));
+        }
+        if (page < totalPages - 1) {
+            inv.setStack(53, namedStack(Items.ARROW, Text.literal("Next Page").formatted(Formatting.WHITE), List.of()));
+        }
+        
+        inv.setStack(48, namedStack(Items.REDSTONE_BLOCK, 
+            Text.literal("Clear Selection").formatted(Formatting.RED),
+            List.of(Text.literal("Remove all selected perks.").formatted(Formatting.GRAY))));
+            
+        inv.setStack(49, namedStack(Items.EMERALD_BLOCK, 
+            Text.literal("Confirm Selection").formatted(Formatting.GREEN),
+            List.of(Text.literal("Selected: " + selected.size() + "/4").formatted(Formatting.GRAY))));
+            
+        String titleType = isSetPerks ? "Set Perks" : "Promised Perks";
+        
+        openScreen(player, inv, 6, Text.literal(titleType + " (Page " + (page + 1) + "/" + totalPages + ")"), (slot, clicker) -> {
+            if (slot < 45) {
+                int perkIndex = startIndex + slot;
+                if (perkIndex < totalPerks) {
+                    String perk = com.example.kingdoms.ui.EventListeners.ALL_PERKS[perkIndex];
+                    if (selected.contains(perk)) {
+                        selected.remove(perk);
+                    } else {
+                        if (selected.size() >= 4) {
+                            clicker.sendMessage(Text.literal("You can only select up to 4 perks!").formatted(Formatting.RED), false);
+                        } else {
+                            selected.add(perk);
+                        }
+                    }
+                    openPerkSelectionMenu(clicker, isSetPerks, page);
+                }
+            } else if (slot == 45 && page > 0) {
+                openPerkSelectionMenu(clicker, isSetPerks, page - 1);
+            } else if (slot == 53 && page < totalPages - 1) {
+                openPerkSelectionMenu(clicker, isSetPerks, page + 1);
+            } else if (slot == 48) {
+                selected.clear();
+                openPerkSelectionMenu(clicker, isSetPerks, page);
+            } else if (slot == 49) {
+                clicker.closeHandledScreen();
+                String perksStr = String.join(", ", selected);
+                if (perksStr.isEmpty()) {
+                    clicker.sendMessage(Text.literal("No perks selected.").formatted(Formatting.YELLOW), false);
+                    activePerkSelections.remove(clicker.getUuid());
+                    return;
+                }
+                
+                MinecraftServer server = clicker.getServer();
+                if (server != null) {
+                    if (isSetPerks) {
+                        server.getCommandManager().executeWithPrefix(clicker.getCommandSource(), "kingdom setperks " + perksStr);
+                    } else {
+                        server.getCommandManager().executeWithPrefix(clicker.getCommandSource(), "kingdom promise " + perksStr);
+                    }
+                }
+                activePerkSelections.remove(clicker.getUuid());
+            }
+        });
+    }
+
+    // ------------------------------------------------------------------
+    // f. History menu
+    // ------------------------------------------------------------------
+
+    public void openHistoryMenu(ServerPlayerEntity player, int page) {
+        List<com.example.kingdoms.db.model.History> historyList = new java.util.ArrayList<>();
+        try {
+            historyList = plugin.getPersistence().history().findRecent(100);
+        } catch (SQLException e) {
+            KingdomsPlugin.LOGGER.error("Failed to load history", e);
+        }
+
+        int itemsPerPage = 45;
+        int totalPages = Math.max(1, (int) Math.ceil((double) historyList.size() / itemsPerPage));
+        
+        SimpleInventory inv = new SimpleInventory(54);
+        
+        int startIndex = page * itemsPerPage;
+        int endIndex = Math.min(startIndex + itemsPerPage, historyList.size());
+        
+        for (int i = startIndex; i < endIndex; i++) {
+            com.example.kingdoms.db.model.History h = historyList.get(i);
+            
+            String eventType = h.getEventType();
+            String targetUuid = h.getTargetUuid() != null ? h.getTargetUuid() : "Unknown";
+            String title = "Event: " + eventType;
+            String desc = h.getPayloadJson();
+            
+            if ("office_appointed".equals(eventType)) {
+                title = "King Appointed";
+                targetUuid = resolvePlayerName(player, h.getTargetUuid());
+                desc = targetUuid + " became King.";
+            } else if ("office_removed".equals(eventType)) {
+                title = "King Removed";
+                targetUuid = resolvePlayerName(player, h.getActorUuid());
+                desc = targetUuid + " was removed from office.";
+            }
+            
+            java.time.Instant time = java.time.Instant.ofEpochMilli(h.getCreatedAt());
+            String date = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(java.time.ZoneOffset.UTC).format(time);
+            
+            inv.setStack(i - startIndex, namedStack(Items.PAPER,
+                Text.literal(title).formatted(Formatting.GOLD),
+                List.of(
+                    Text.literal(desc).formatted(Formatting.WHITE),
+                    Text.literal(date).formatted(Formatting.GRAY)
+                )));
+        }
+        
+        if (page > 0) {
+            inv.setStack(45, namedStack(Items.ARROW, Text.literal("Previous Page").formatted(Formatting.WHITE), List.of()));
+        }
+        if (page < totalPages - 1) {
+            inv.setStack(53, namedStack(Items.ARROW, Text.literal("Next Page").formatted(Formatting.WHITE), List.of()));
+        }
+        
+        inv.setStack(49, namedStack(Items.OAK_DOOR, Text.literal("Back to Main Menu").formatted(Formatting.YELLOW), List.of()));
+        
+        openScreen(player, inv, 6, Text.literal("Kingdom History (Page " + (page + 1) + "/" + totalPages + ")"), (slot, clicker) -> {
+            if (slot == 45 && page > 0) {
+                openHistoryMenu(clicker, page - 1);
+            } else if (slot == 53 && page < totalPages - 1) {
+                openHistoryMenu(clicker, page + 1);
+            } else if (slot == 49) {
+                openMainMenu(clicker);
             }
         });
     }

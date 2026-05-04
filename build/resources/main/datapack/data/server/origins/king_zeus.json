@@ -1,16 +1,17 @@
 {
   "powers": [
-    "server:king_flight",
-    "server:king_lightning",
-    "server:king_aura",
-    "server:king_resilience",
-    "server:king_hunger_penalty"
+    "kingdom:royal_strength",
+    "kingdom:crown_resilience",
+    "kingdom:sovereign_speed",
+    "kingdom:royal_presence_glow",
+    "kingdom:target_of_all",
+    "kingdom:cant_hide"
   ],
   "icon": {
-    "item": "minecraft:nether_star"
+    "item": "minecraft:golden_helmet"
   },
-  "name": "King Zeus",
-  "description": "The divine ruler of the realm. Blessed with the powers of sky and storm, but weakened by the depths of the earth.",
+  "name": "The King",
+  "description": "You bear the crown of the realm. Power flows through you, but the weight of rule is heavy.",
   "unchoosable": true,
   "order": -1
 }
