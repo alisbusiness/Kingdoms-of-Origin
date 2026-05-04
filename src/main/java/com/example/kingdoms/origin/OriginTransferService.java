@@ -46,26 +46,19 @@ public final class OriginTransferService {
     public void grantKingStatus(ServerPlayerEntity player) throws SQLException {
         if (adapter == null) return;
 
-        String mode     = config.originMode().type();
         String officeId = config.office().id();
         String uuid     = player.getUuidAsString();
 
-        if ("layer".equals(mode)) {
-            adapter.assignOriginLayer(player,
-                    config.originMode().kingLayerId(),
-                    config.originMode().kingOriginId());
-        } else {
-            // "replace": snapshot current origin so it can be restored on revoke
-            String previous = adapter.getCurrentOrigin(player);
-            OfficeState state = loadOrCreate(officeId);
-            state.setHolderOriginBeforeOffice(previous);
-            state.setActiveKingOriginId(config.originMode().kingOriginId());
-            persistence.officeStates().save(state);
-            adapter.assignOrigin(player, config.originMode().kingOriginId());
-        }
+        // Snapshot current origin so it can be restored on revoke
+        String previous = adapter.getCurrentOrigin(player);
+        OfficeState state = loadOrCreate(officeId);
+        state.setHolderOriginBeforeOffice(previous);
+        state.setActiveKingOriginId(config.originMode().kingOriginId());
+        persistence.officeStates().save(state);
+        adapter.assignOrigin(player, config.originMode().kingOriginId());
 
         if (config.debug().logOriginTransfers()) {
-            LOGGER.info("King status granted to {} (mode={})", uuid, mode);
+            LOGGER.info("King status granted to {}", uuid);
         }
     }
 
@@ -76,29 +69,24 @@ public final class OriginTransferService {
     public void revokeKingStatus(ServerPlayerEntity player) throws SQLException {
         if (adapter == null) return;
 
-        String mode     = config.originMode().type();
         String officeId = config.office().id();
         String uuid     = player.getUuidAsString();
 
-        if ("layer".equals(mode)) {
-            adapter.clearOriginLayer(player, config.originMode().kingLayerId());
+        OfficeState state = persistence.officeStates().findByOfficeId(officeId).orElse(null);
+        String previous   = state != null ? state.getHolderOriginBeforeOffice() : null;
+        if (previous != null) {
+            adapter.assignOrigin(player, previous);
         } else {
-            OfficeState state = persistence.officeStates().findByOfficeId(officeId).orElse(null);
-            String previous   = state != null ? state.getHolderOriginBeforeOffice() : null;
-            if (previous != null) {
-                adapter.assignOrigin(player, previous);
-            } else {
-                LOGGER.warn("No stored previous origin for {} — skipping restore in replace mode", uuid);
-            }
-            if (state != null) {
-                state.setHolderOriginBeforeOffice(null);
-                state.setActiveKingOriginId(null);
-                persistence.officeStates().save(state);
-            }
+            LOGGER.warn("No stored previous origin for {} — skipping restore", uuid);
+        }
+        if (state != null) {
+            state.setHolderOriginBeforeOffice(null);
+            state.setActiveKingOriginId(null);
+            persistence.officeStates().save(state);
         }
 
         if (config.debug().logOriginTransfers()) {
-            LOGGER.info("King status revoked from {} (mode={})", uuid, mode);
+            LOGGER.info("King status revoked from {}", uuid);
         }
     }
 
@@ -180,23 +168,15 @@ public final class OriginTransferService {
     public void validateSync(ServerPlayerEntity player) {
         if (adapter == null) return;
 
-        String mode     = config.originMode().type();
         String expected = config.originMode().kingOriginId();
         String uuid     = player.getUuidAsString();
 
-        String actual = "layer".equals(mode)
-                ? adapter.getOriginOnLayer(player, config.originMode().kingLayerId())
-                : adapter.getCurrentOrigin(player);
+        String actual = adapter.getCurrentOrigin(player);
 
         if (!expected.equals(actual)) {
-            String location = "layer".equals(mode) ? config.originMode().kingLayerId() : "main layer";
-            LOGGER.warn("Origin sync mismatch for {} — expected '{}' on {}, found '{}'; re-applying",
-                    uuid, expected, location, actual);
-            if ("layer".equals(mode)) {
-                adapter.assignOriginLayer(player, config.originMode().kingLayerId(), expected);
-            } else {
-                adapter.assignOrigin(player, expected);
-            }
+            LOGGER.warn("Origin sync mismatch for {} — expected '{}', found '{}'; re-applying",
+                    uuid, expected, actual);
+            adapter.assignOrigin(player, expected);
         }
     }
 

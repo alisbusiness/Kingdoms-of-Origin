@@ -22,9 +22,7 @@ public final class ConfigLoader {
     ) {}
 
     public record OriginModeConfig(
-        String type,
-        String kingOriginId,
-        String kingLayerId
+        String kingOriginId
     ) {}
 
     public record OriginRestoreConfig(
@@ -135,9 +133,7 @@ public final class ConfigLoader {
 
     private static OriginModeConfig parseOriginMode(Map<String, Object> m) {
         return new OriginModeConfig(
-            str(m, "type", "layer"),
-            str(m, "king_origin_id", "kingdoms_of_origin:king"),
-            str(m, "king_layer_id", "kingdoms_of_origin:office")
+            str(m, "king_origin_id", "kingdoms_of_origin:king")
         );
     }
 
