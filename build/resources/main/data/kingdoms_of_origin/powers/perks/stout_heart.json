@@ -1,8 +1,0 @@
-{
-  "type": "origins:effect_immunity",
-  "name": "Stout Heart",
-  "description": "Immune to fear (weakness).",
-  "effects": [
-    "minecraft:weakness"
-  ]
-}

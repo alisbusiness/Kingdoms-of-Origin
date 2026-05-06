@@ -1,8 +1,0 @@
-{
-  "type": "origins:effect_immunity",
-  "name": "Honey Lover",
-  "description": "Immune to bee poison.",
-  "effects": [
-    "minecraft:poison"
-  ]
-}

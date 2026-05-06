@@ -1,8 +1,0 @@
-{
-  "type": "origins:effect_immunity",
-  "name": "Iron Skin",
-  "description": "Immune to poison.",
-  "effects": [
-    "minecraft:poison"
-  ]
-}

@@ -1,8 +1,0 @@
-{
-  "name": "Subject of the Realm",
-  "description": "An ordinary citizen of the kingdom. You hold no special power, but the crown could yet find its way to you.",
-  "icon": "minecraft:player_head",
-  "impact": 0,
-  "order": 0,
-  "powers": []
-}

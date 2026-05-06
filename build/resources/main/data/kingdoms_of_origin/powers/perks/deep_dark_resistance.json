@@ -1,9 +1,0 @@
-{
-  "type": "origins:effect_immunity",
-  "name": "Deep Dark Resistance",
-  "description": "Immunity to Darkness and Blindness.",
-  "effects": [
-    "minecraft:darkness",
-    "minecraft:blindness"
-  ]
-}

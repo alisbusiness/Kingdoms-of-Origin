@@ -1,8 +1,0 @@
-{
-  "type": "origins:effect_immunity",
-  "name": "Squid's Ink",
-  "description": "Immune to blindness.",
-  "effects": [
-    "minecraft:blindness"
-  ]
-}
