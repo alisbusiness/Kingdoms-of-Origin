@@ -19,6 +19,7 @@ public final class AnnouncementService {
     private MinecraftServer server;
 
     private ServerBossBar electionBossBar;
+    private ServerBossBar revoltBossBar;
 
     public AnnouncementService(ConfigLoader config) {
         this.config = config;
@@ -78,12 +79,28 @@ public final class AnnouncementService {
 
     public void addPlayerToBossBar(net.minecraft.server.network.ServerPlayerEntity player) {
         if (electionBossBar != null) electionBossBar.addPlayer(player);
+        if (revoltBossBar != null) revoltBossBar.addPlayer(player);
     }
 
     public void dismissElectionBossBar() {
         if (electionBossBar != null) {
             electionBossBar.clearPlayers();
             electionBossBar = null;
+        }
+    }
+
+    public void showRevoltBossBar(Text title) {
+        if (server == null) return;
+        dismissRevoltBossBar();
+        revoltBossBar = new ServerBossBar(title, BossBar.Color.RED, BossBar.Style.PROGRESS);
+        revoltBossBar.setPercent(1.0f);
+        server.getPlayerManager().getPlayerList().forEach(revoltBossBar::addPlayer);
+    }
+
+    public void dismissRevoltBossBar() {
+        if (revoltBossBar != null) {
+            revoltBossBar.clearPlayers();
+            revoltBossBar = null;
         }
     }
 

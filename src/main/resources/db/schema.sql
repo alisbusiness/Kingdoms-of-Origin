@@ -71,3 +71,67 @@ CREATE TABLE IF NOT EXISTS promise_history (
   honored INTEGER,
   created_at INTEGER
 );
+
+CREATE TABLE IF NOT EXISTS treasury_state (
+  office_id TEXT PRIMARY KEY,
+  raw_diamonds INTEGER DEFAULT 0,
+  diamond_blocks INTEGER DEFAULT 0,
+  currency_supply INTEGER DEFAULT 0,
+  taxes_collected INTEGER DEFAULT 0,
+  public_spending INTEGER DEFAULT 0,
+  treasury_withdrawals INTEGER DEFAULT 0,
+  emergency_minting INTEGER DEFAULT 0,
+  xp_tax_rate INTEGER DEFAULT 0,
+  trade_tax_rate INTEGER DEFAULT 0,
+  resource_tithe_rate INTEGER DEFAULT 0,
+  emergency_levy_rate INTEGER DEFAULT 0,
+  legitimacy INTEGER DEFAULT 70,
+  corruption_heat INTEGER DEFAULT 0,
+  unrest INTEGER DEFAULT 0,
+  revolt_active INTEGER DEFAULT 0,
+  revolt_started_at INTEGER DEFAULT 0,
+  capture_progress INTEGER DEFAULT 0,
+  transition_freeze_until INTEGER DEFAULT 0,
+  updated_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS currency_balances (
+  player_uuid TEXT PRIMARY KEY,
+  balance INTEGER DEFAULT 0,
+  updated_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS revolt_participants (
+  player_uuid TEXT PRIMARY KEY,
+  side TEXT,
+  joined_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS treasury_ledger (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  office_id TEXT,
+  actor_uuid TEXT,
+  type TEXT,
+  amount INTEGER,
+  public INTEGER,
+  note TEXT,
+  created_at INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_elections_office_status
+  ON elections (office_id, status, id DESC);
+
+CREATE INDEX IF NOT EXISTS idx_candidates_election_player
+  ON candidates (election_id, player_uuid);
+
+CREATE INDEX IF NOT EXISTS idx_votes_election_voter
+  ON votes (election_id, voter_uuid);
+
+CREATE INDEX IF NOT EXISTS idx_votes_election_candidate
+  ON votes (election_id, candidate_uuid);
+
+CREATE INDEX IF NOT EXISTS idx_history_created_at
+  ON history (created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_treasury_ledger_office_public
+  ON treasury_ledger (office_id, public, id DESC);

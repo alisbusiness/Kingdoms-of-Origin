@@ -7,23 +7,28 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.mob.HostileEntity;
+import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.registry.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.TypedActionResult;
 
 import java.sql.SQLException;
@@ -66,6 +71,12 @@ public final class PerkService {
         });
         UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
             if (!world.isClient && player instanceof ServerPlayerEntity sp) onUseBlock(sp, world.getBlockState(hitResult.getBlockPos()).getBlock());
+            return ActionResult.PASS;
+        });
+        UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
+            if (!world.isClient && player instanceof ServerPlayerEntity sp && entity instanceof VillagerEntity) {
+                plugin.getTreasuryService().collectTax(sp, "trade", 1);
+            }
             return ActionResult.PASS;
         });
         ServerTickEvents.END_SERVER_TICK.register(this::onTick);
@@ -134,6 +145,9 @@ public final class PerkService {
 
     private void onBreakBlock(ServerPlayerEntity player, BlockState state) {
         Block block = state.getBlock();
+        if (block == Blocks.DIAMOND_ORE || block == Blocks.DEEPSLATE_DIAMOND_ORE) {
+            plugin.getTreasuryService().collectTax(player, "resource", 1);
+        }
         if (isActive("stone_covenant") && block == Blocks.STONE && player.getY() < 32) effect(player, StatusEffects.HASTE, 240, 0);
         if (isActive("deep_levy") && isOre(block) && block.getName().getString().contains("Deepslate")) {
             effect(player, StatusEffects.HASTE, 200, 1);
@@ -252,14 +266,15 @@ public final class PerkService {
         int adjusted = amount;
         if (isActive("crown_tax")) adjusted = isKing(player) ? Math.max(1, Math.round(amount * 1.4f)) : Math.max(0, Math.round(amount * 0.85f));
         if (isActive("austerity_act") && !isKing(player)) adjusted = Math.max(0, Math.round(adjusted * 0.9f));
+        plugin.getTreasuryService().collectTax(player, "xp", adjusted);
         player.addExperience(adjusted);
     }
 
     private void drop(ServerPlayerEntity player, String itemId, int count) {
-        MinecraftServer server = player.getServer();
-        if (server != null) {
-            server.getCommandManager().executeWithPrefix(server.getCommandSource(), "summon item " + player.getX() + " " + player.getY() + " " + player.getZ() + " {Item:{id:\"" + itemId + "\",Count:" + count + "b}}");
-        }
+        var item = Registries.ITEM.get(new Identifier(itemId));
+        if (item == Items.AIR) return;
+        ItemEntity entity = new ItemEntity(player.getWorld(), player.getX(), player.getY(), player.getZ(), new ItemStack(item, count));
+        player.getWorld().spawnEntity(entity);
     }
 
     public record ApplyResult(boolean success, String message) {}

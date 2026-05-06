@@ -130,6 +130,10 @@ public final class GuiService {
             Messages.guiHistoryButton(),
             List.of(Text.literal("View kingdom history.").formatted(Formatting.GRAY))));
 
+        inv.setStack(10, namedStack(Items.DIAMOND,
+            Text.literal("Treasury").formatted(Formatting.AQUA, Formatting.BOLD),
+            List.of(Text.literal("View reserves, Crowns, taxes, and unrest.").formatted(Formatting.GRAY))));
+
         openScreen(player, inv, 3, Messages.guiTitle("Kingdom Politics"), (slot, clicker) -> {
             switch (slot) {
                 case 11 -> {
@@ -140,6 +144,7 @@ public final class GuiService {
                     }
                 }
                 case 13 -> openCandidateList(clicker);
+                case 10 -> openTreasuryMenu(clicker);
                 case 14 -> {
                     if (ElectionPhase.fromString(officeService.getPhase()) == ElectionPhase.NOMINATION ||
                         ElectionPhase.fromString(officeService.getPhase()) == ElectionPhase.CAMPAIGN) {
@@ -175,6 +180,62 @@ public final class GuiService {
                 default -> {}
             }
         });
+    }
+
+    public void openTreasuryMenu(ServerPlayerEntity player) {
+        SimpleInventory inv = new SimpleInventory(27);
+        try {
+            var s = plugin.getTreasuryService().state();
+            int balance = plugin.getTreasuryService().balance(player.getUuidAsString());
+            inv.setStack(4, namedStack(Items.DIAMOND_BLOCK,
+                Text.literal("Diamond Reserves").formatted(s.reserveHealth().color(), Formatting.BOLD),
+                List.of(
+                    Text.literal(s.rawDiamonds() + " diamonds, " + s.diamondBlocks() + " diamond blocks").formatted(Formatting.WHITE),
+                    Text.literal(s.reserveValue() + " diamond-equivalent reserve").formatted(Formatting.AQUA),
+                    Text.literal("State: " + s.reserveHealth().label()).formatted(s.reserveHealth().color())
+                )));
+            String currency = plugin.getTreasuryService().currencyName();
+            inv.setStack(10, namedStack(Items.PAPER,
+                Text.literal(currency).formatted(Formatting.GOLD, Formatting.BOLD),
+                List.of(
+                    Text.literal("Supply: " + s.currencySupply()).formatted(Formatting.WHITE),
+                    Text.literal("Reserve ratio: " + Math.round(s.reserveRatio() * 100.0) + "%").formatted(s.reserveHealth().color()),
+                    Text.literal("Your balance: " + balance).formatted(Formatting.AQUA)
+                )));
+            inv.setStack(12, namedStack(Items.WRITABLE_BOOK,
+                Text.literal("Tax Policy").formatted(Formatting.YELLOW, Formatting.BOLD),
+                List.of(
+                    Text.literal("XP: " + s.xpTaxRate() + "%").formatted(Formatting.GRAY),
+                    Text.literal("Trade: " + s.tradeTaxRate() + "%").formatted(Formatting.GRAY),
+                    Text.literal("Resource tithe: " + s.resourceTitheRate() + "%").formatted(Formatting.GRAY),
+                    Text.literal("Emergency levy: " + s.emergencyLevyRate() + "%").formatted(Formatting.RED)
+                )));
+            inv.setStack(14, namedStack(Items.REDSTONE,
+                Text.literal("Political Stability").formatted(s.unrestBand().color(), Formatting.BOLD),
+                List.of(
+                    Text.literal("Legitimacy: " + s.legitimacy() + "/100").formatted(Formatting.GREEN),
+                    Text.literal("Corruption Heat: " + s.corruptionHeat() + "/100").formatted(Formatting.DARK_RED),
+                    Text.literal("Unrest: " + s.unrest() + "/100 (" + s.unrestBand().label() + ")").formatted(s.unrestBand().color()),
+                    Text.literal("Revolt: " + (s.revoltActive() ? "OPEN" : "closed")).formatted(s.revoltActive() ? Formatting.DARK_RED : Formatting.GRAY)
+                )));
+            inv.setStack(16, namedStack(Items.BELL,
+                Text.literal("Public Ledger").formatted(Formatting.AQUA, Formatting.BOLD),
+                plugin.getPersistence().treasury().recentPublicLedger(plugin.getConfig().office().id(), 5).stream()
+                    .<Text>map(line -> Text.literal(line).formatted(Formatting.GRAY))
+                    .toList()));
+            if (player.getUuidAsString().equals(officeService.getRuler())) {
+                inv.setStack(22, namedStack(Items.GOLD_INGOT,
+                    Text.literal("Fiscal Controls").formatted(Formatting.GOLD, Formatting.BOLD),
+                    List.of(
+                        Text.literal("Use /kingdom treasury tax <channel> <rate>").formatted(Formatting.GRAY),
+                        Text.literal("Use /kingdom treasury mint <amount>").formatted(Formatting.GRAY),
+                        Text.literal("Use /kingdom treasury spend <category> <amount>").formatted(Formatting.GRAY)
+                    )));
+            }
+        } catch (SQLException e) {
+            inv.setStack(13, namedStack(Items.BARRIER, Text.literal("Treasury unavailable").formatted(Formatting.RED), List.of()));
+        }
+        openScreen(player, inv, 3, Text.literal("Kingdom Treasury"), (slot, clicker) -> {});
     }
 
     // ------------------------------------------------------------------

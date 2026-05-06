@@ -14,6 +14,7 @@ import com.example.kingdoms.schedule.ScheduleService;
 import com.example.kingdoms.schedule.StartupRecoveryService;
 import com.example.kingdoms.map.MapIntegrationService;
 import com.example.kingdoms.network.ServerNetworking;
+import com.example.kingdoms.treasury.TreasuryService;
 import com.example.kingdoms.ui.AnnouncementService;
 import com.example.kingdoms.ui.EventListeners;
 import com.example.kingdoms.ui.command.KingdomCommand;
@@ -51,6 +52,7 @@ public class KingdomsPlugin implements ModInitializer {
     private EventListeners eventListeners;
     private MapIntegrationService mapIntegrationService;
     private PerkService perkService;
+    private TreasuryService treasuryService;
 
     @Override
     public void onInitialize() {
@@ -118,6 +120,8 @@ public class KingdomsPlugin implements ModInitializer {
         officeService.setAnnouncementService(announcementService);
         playerStateService = new PlayerStateService(originAdapter, persistence, config);
         perkService = new PerkService(this, officeService);
+        treasuryService = new TreasuryService(persistence, config, officeService);
+        treasuryService.setAnnouncementService(announcementService);
 
         try {
             officeService.init();
@@ -141,6 +145,7 @@ public class KingdomsPlugin implements ModInitializer {
 
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             officeService.setServer(server);
+            treasuryService.setServer(server);
             officeService.onServerStarted();
             announcementService.setServer(server);
             mapIntegrationService.init();
@@ -160,7 +165,7 @@ public class KingdomsPlugin implements ModInitializer {
     // -------------------------------------------------------------------------
 
     public void reloadConfig() {
-        config = ConfigLoader.load(configDir.resolve("config.yml"));
+        config.reload(configDir.resolve("config.yml"));
         LOGGER.info("Config reloaded from disk.");
     }
 
@@ -191,6 +196,7 @@ public class KingdomsPlugin implements ModInitializer {
     public MapIntegrationService getMapIntegrationService() { return mapIntegrationService; }
     public AnnouncementService getAnnouncementService()     { return announcementService; }
     public PerkService getPerkService()                     { return perkService; }
+    public TreasuryService getTreasuryService()             { return treasuryService; }
 
     private void ensureDefaultConfig(Path configDir) {
         Path configFile = configDir.resolve("config.yml");

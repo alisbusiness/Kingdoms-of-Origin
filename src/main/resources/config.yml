@@ -33,6 +33,26 @@ map:
   provider: "bluemap"   # values: bluemap, dynmap, none
   show_capital_marker: true
 
+treasury:
+  currency_name: "Crowns"
+  mint_max: 500
+  spend_max: 250
+  transition_freeze_minutes: 30
+  tax_caps:
+    xp: 30
+    trade: 30
+    resource: 30
+    levy: 50
+
+revolt:
+  threshold: 80
+  capture_required: 100
+  capture_radius: 18.0
+  capital:
+    x: 0.0
+    y: 64.0
+    z: 0.0
+
 debug:
   log_origin_transfers: true
   log_gui_actions: false

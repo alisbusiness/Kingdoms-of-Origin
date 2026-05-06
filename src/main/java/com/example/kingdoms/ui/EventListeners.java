@@ -4,6 +4,7 @@ import com.example.kingdoms.KingdomsPlugin;
 import com.example.kingdoms.election.ElectionException;
 import com.example.kingdoms.origin.OfficeService;
 import com.example.kingdoms.origin.PlayerStateService;
+import com.example.kingdoms.perk.PerkRegistry;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -37,22 +38,6 @@ public final class EventListeners {
 
     private int tickCounter = 0;
     private static final int TICKS_PER_MINUTE = 20 * 60;
-
-    public static final String[] ALL_PERKS = {
-        "acrobat", "apple_picker", "aqua_affinity", "arachnid_bane", "blessed_realm",
-        "bountiful_harvest_i", "butchers_blade", "censorship", "creeper_resistance", "curfew",
-        "current_rider", "deep_dark_resistance", "deep_sea_diver", "diamond_luck", "disarmed_populace",
-        "dolphins_grace", "early_bird", "enchanters_wisdom", "enderman_slayer", "fishers_diet",
-        "forced_labor_i", "forced_labor_ii", "fragile_armor", "frail_subjects", "green_thumb",
-        "guardian_slayer", "heavy_taxes_i", "heavy_taxes_ii", "hero_of_the_realm_i", "hero_of_the_realm_ii",
-        "honey_lover", "iron_skin", "lava_immunity", "lumberjack", "master_angler_i",
-        "miners_haste_i", "miners_haste_ii", "miners_haste_iii", "mountaineer", "mushroom_forager",
-        "night_owl", "obsidian_breaker", "ocean_treasure", "oppression_i", "oppression_ii",
-        "ore_doubling", "royal_guard_i", "royal_guard_ii", "royal_vitality_i", "royal_vitality_ii",
-        "seas_bounty_i", "shepherd", "slowed_masses", "spelunkers_glow", "squids_ink",
-        "starvation_diet_i", "starvation_diet_ii", "stout_heart", "swift_messenger", "swift_striker",
-        "tractor", "unbreaking_tools", "undead_slayer", "unlucky_realm", "vegans_grace"
-    };
 
     public EventListeners(
         KingdomsPlugin plugin,
@@ -125,7 +110,7 @@ public final class EventListeners {
             }
 
             // 4. Clean up all old perks
-            for (String perk : ALL_PERKS) {
+            for (String perk : PerkRegistry.legacyOriginPowerIds()) {
                 server.getCommandManager().executeWithPrefix(server.getCommandSource(), 
                     "power revoke " + player.getName().getString() + " kingdoms_of_origin:perks/" + perk);
             }
@@ -144,6 +129,7 @@ public final class EventListeners {
             if (++tickCounter < TICKS_PER_MINUTE) return;
             tickCounter = 0;
             checkTermExpiration(server);
+            plugin.getTreasuryService().onServerMinute(server);
         });
     }
 

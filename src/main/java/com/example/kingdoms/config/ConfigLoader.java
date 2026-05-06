@@ -8,8 +8,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ConfigLoader {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConfigLoader.class);
 
     public record OfficeConfig(
         String id,
@@ -53,20 +57,42 @@ public final class ConfigLoader {
         boolean showCapitalMarker
     ) {}
 
+    public record TreasuryConfig(
+        String currencyName,
+        int mintMax,
+        int spendMax,
+        int transitionFreezeMinutes,
+        int xpTaxCap,
+        int tradeTaxCap,
+        int resourceTaxCap,
+        int levyTaxCap
+    ) {}
+
+    public record RevoltConfig(
+        int threshold,
+        int captureRequired,
+        double captureRadius,
+        double capitalX,
+        double capitalY,
+        double capitalZ
+    ) {}
+
     public record DebugConfig(
         boolean logOriginTransfers,
         boolean logGuiActions
     ) {}
 
-    private final OfficeConfig office;
-    private final OriginModeConfig originMode;
-    private final OriginRestoreConfig originRestore;
-    private final TransitionConfig transition;
-    private final VotingConfig voting;
+    private OfficeConfig office;
+    private OriginModeConfig originMode;
+    private OriginRestoreConfig originRestore;
+    private TransitionConfig transition;
+    private VotingConfig voting;
 
-    private final UiConfig ui;
-    private final MapConfig map;
-    private final DebugConfig debug;
+    private UiConfig ui;
+    private MapConfig map;
+    private TreasuryConfig treasury;
+    private RevoltConfig revolt;
+    private DebugConfig debug;
 
     private ConfigLoader(Map<String, Object> raw) {
         office       = parseOffice(section(raw, "office"));
@@ -77,17 +103,35 @@ public final class ConfigLoader {
 
         ui           = parseUi(section(raw, "ui"));
         map          = parseMap(section(raw, "map"));
+        treasury     = parseTreasury(section(raw, "treasury"));
+        revolt       = parseRevolt(section(raw, "revolt"));
         debug        = parseDebug(section(raw, "debug"));
+        validate();
     }
 
     public static ConfigLoader load(Path configFile) {
         Yaml yaml = new Yaml();
         try (InputStream in = Files.newInputStream(configFile)) {
             Map<String, Object> raw = yaml.load(in);
+            if (raw == null) raw = Map.of();
             return new ConfigLoader(raw);
         } catch (IOException e) {
             throw new RuntimeException("Failed to load config from " + configFile, e);
         }
+    }
+
+    public void reload(Path configFile) {
+        ConfigLoader next = load(configFile);
+        office = next.office;
+        originMode = next.originMode;
+        originRestore = next.originRestore;
+        transition = next.transition;
+        voting = next.voting;
+        ui = next.ui;
+        map = next.map;
+        treasury = next.treasury;
+        revolt = next.revolt;
+        debug = next.debug;
     }
 
     @SuppressWarnings("unchecked")
@@ -112,6 +156,11 @@ public final class ConfigLoader {
         return v instanceof Number n ? n.intValue() : def;
     }
 
+    private static double decimal(Map<String, Object> m, String key, double def) {
+        Object v = m.get(key);
+        return v instanceof Number n ? n.doubleValue() : def;
+    }
+
     @SuppressWarnings("unchecked")
     private static List<String> strings(Map<String, Object> m, String key) {
         Object v = m.get(key);
@@ -123,11 +172,11 @@ public final class ConfigLoader {
         return new OfficeConfig(
             str(m, "id", "king"),
             str(m, "display_name", "King"),
-            integer(m, "term_days", 7),
+            positiveInt(m, "term_days", 7),
             bool(m, "election_enabled", true),
-            integer(m, "nomination_days", 2),
-            integer(m, "campaign_days", 2),
-            integer(m, "voting_days", 1)
+            positiveInt(m, "nomination_days", 2),
+            positiveInt(m, "campaign_days", 2),
+            positiveInt(m, "voting_days", 1)
         );
     }
 
@@ -155,7 +204,7 @@ public final class ConfigLoader {
     private static VotingConfig parseVoting(Map<String, Object> m) {
         return new VotingConfig(
             str(m, "system", "plurality"),
-            integer(m, "minimum_playtime_minutes", 60),
+            Math.max(0, integer(m, "minimum_playtime_minutes", 60)),
             bool(m, "anonymous_votes", true)
         );
     }
@@ -169,9 +218,40 @@ public final class ConfigLoader {
     }
 
     private static MapConfig parseMap(Map<String, Object> m) {
+        String provider = str(m, "provider", "bluemap").toLowerCase(Locale.ROOT);
+        if (!provider.equals("bluemap") && !provider.equals("dynmap") && !provider.equals("none")) {
+            LOGGER.warn("Invalid map.provider '{}'; using 'none'.", provider);
+            provider = "none";
+        }
         return new MapConfig(
-            str(m, "provider", "bluemap"),
+            provider,
             bool(m, "show_capital_marker", true)
+        );
+    }
+
+    private static TreasuryConfig parseTreasury(Map<String, Object> m) {
+        Map<String, Object> caps = section(m, "tax_caps");
+        return new TreasuryConfig(
+            str(m, "currency_name", "Crowns"),
+            positiveInt(m, "mint_max", 500),
+            positiveInt(m, "spend_max", 250),
+            positiveInt(m, "transition_freeze_minutes", 30),
+            clampPercent(integer(caps, "xp", 30)),
+            clampPercent(integer(caps, "trade", 30)),
+            clampPercent(integer(caps, "resource", 30)),
+            clampPercent(integer(caps, "levy", 50))
+        );
+    }
+
+    private static RevoltConfig parseRevolt(Map<String, Object> m) {
+        Map<String, Object> capital = section(m, "capital");
+        return new RevoltConfig(
+            clampPercent(integer(m, "threshold", 80)),
+            positiveInt(m, "capture_required", 100),
+            Math.max(1.0, decimal(m, "capture_radius", 18.0)),
+            decimal(capital, "x", 0.0),
+            decimal(capital, "y", 64.0),
+            decimal(capital, "z", 0.0)
         );
     }
 
@@ -182,6 +262,23 @@ public final class ConfigLoader {
         );
     }
 
+    private void validate() {
+        if (originMode.kingOriginId() == null || !originMode.kingOriginId().contains(":")) {
+            LOGGER.warn("origin_mode.king_origin_id '{}' does not look like a namespaced ID.", originMode.kingOriginId());
+        }
+        if (!voting.system().equalsIgnoreCase("plurality")) {
+            LOGGER.warn("Unsupported voting.system '{}'; current implementation still uses plurality.", voting.system());
+        }
+    }
+
+    private static int positiveInt(Map<String, Object> m, String key, int def) {
+        return Math.max(1, integer(m, key, def));
+    }
+
+    private static int clampPercent(int value) {
+        return Math.max(0, Math.min(100, value));
+    }
+
     public OfficeConfig office()             { return office; }
     public OriginModeConfig originMode()     { return originMode; }
     public OriginRestoreConfig originRestore() { return originRestore; }
@@ -190,5 +287,7 @@ public final class ConfigLoader {
 
     public UiConfig ui()                     { return ui; }
     public MapConfig map()                   { return map; }
+    public TreasuryConfig treasury()         { return treasury; }
+    public RevoltConfig revolt()             { return revolt; }
     public DebugConfig debug()               { return debug; }
 }

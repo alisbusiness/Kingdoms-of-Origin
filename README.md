@@ -42,6 +42,18 @@ The mod integrates perfectly with your existing Origins.
 - **Live Announcements:** Boss bars and scoreboard updates keep everyone informed about ongoing elections.
 - **Map Support:** Integrates with BlueMap and Dynmap to highlight the Capital and the current ruler's domain.
 
+### 5. Treasury & Unrest Update
+The kingdom now has a public treasury and a diamond-backed state currency called **Crowns**.
+
+- Only **diamonds** and **diamond blocks** count as reserve backing. One diamond block counts as 9 diamonds.
+- The treasury tracks reserves, Crown supply, reserve ratio, taxes collected, public spending, withdrawals, emergency minting, legitimacy, corruption heat, and unrest.
+- Reserve health is public and moves through **Fully Backed**, **Stable**, **Strained**, **Debased**, and **Insolvent**.
+- The King can tax, mint Crowns, fund public works, pay for relief, stabilize the kingdom, spend on the palace, or siphon value privately.
+- Harsh taxes, overprinting, failed redemption, reserve collapse, palace spending, and siphoning raise corruption heat and unrest.
+- When unrest reaches the revolt threshold, a **Revolt Window** opens. Rebels can overthrow the King only by physically capturing the capital.
+
+The default capital objective is **0 64 0**, but the capital, capture radius, revolt threshold, and capture requirement are configurable. During a revolt, rebels must join the revolt, stand near the capital, and outnumber loyalists in the control zone until capture reaches the configured target. Loyalists and the King can contest the zone to reduce progress.
+
 ---
 
 ## 🛠️ Server Administrator Guide
@@ -103,6 +115,18 @@ To change the King origin without touching Java code:
 | `ui.send_chat_broadcasts` | bool | `true` | Broadcast major events to all players in chat. |
 | `map.provider` | string | `bluemap` | Map plugin: `bluemap`, `dynmap`, or `none`. |
 | `map.show_capital_marker` | bool | `true` | Place a Capital POI marker on the map. |
+| `treasury.currency_name` | string | `Crowns` | Display name for the kingdom currency. |
+| `treasury.mint_max` | int | `500` | Maximum currency minted by one mint command. |
+| `treasury.spend_max` | int | `250` | Maximum treasury spend by one spend command. |
+| `treasury.transition_freeze_minutes` | int | `30` | How long treasury controls freeze after a successful revolt. |
+| `treasury.tax_caps.xp` | int | `30` | Maximum XP tax rate. |
+| `treasury.tax_caps.trade` | int | `30` | Maximum trade tax rate. |
+| `treasury.tax_caps.resource` | int | `30` | Maximum resource tithe rate. |
+| `treasury.tax_caps.levy` | int | `50` | Maximum emergency levy rate. |
+| `revolt.threshold` | int | `80` | Unrest value that opens the revolt window. |
+| `revolt.capture_required` | int | `100` | Capture progress needed to overthrow the ruler. |
+| `revolt.capture_radius` | decimal | `18.0` | Radius around the capital objective used for capture checks. |
+| `revolt.capital.x/y/z` | decimal | `0.0 / 64.0 / 0.0` | Capital objective coordinates. |
 | `debug.log_origin_transfers` | bool | `true` | Log every origin assignment to the console. |
 | `debug.log_gui_actions` | bool | `false` | Log GUI open/close events (verbose). |
 
@@ -125,6 +149,17 @@ These commands are available to all players:
 | `/kingdom perks` | Open a read-only GUI showing the currently active kingdom policies. |
 | `/kingdom perk <id>` | Inspect a specific policy by ID. |
 | `/kingdom trust` | View the current ruler's trust score and recent promise history. |
+| `/kingdom treasury` | View reserves, Crown supply, reserve ratio, taxes, legitimacy, corruption heat, unrest, and revolt status. |
+| `/kingdom treasury gui` | Open the treasury GUI. Also available from `/kingdom menu`. |
+| `/kingdom treasury deposit <diamonds> <blocks>` | Deposit diamonds and diamond blocks into the public reserve. |
+| `/kingdom treasury redeem <amount>` | Redeem your Crowns for diamond reserves if the treasury is solvent. |
+| `/kingdom treasury tax <xp\|trade\|resource\|levy> <rate>` | King only: set tax rates. Caps are configurable in `treasury.tax_caps`. |
+| `/kingdom treasury mint <amount>` | King only: mint currency. Can exceed reserves, but debases the currency. |
+| `/kingdom treasury emergency-mint <amount>` | King only: mint emergency Crowns with stronger unrest/corruption consequences. |
+| `/kingdom treasury spend <category> <amount>` | King only: spend treasury funds. Categories listed below. |
+| `/kingdom revolt` | View revolt status and capital capture progress. |
+| `/kingdom revolt join` | Join the rebel side during an active revolt window. |
+| `/kingdom revolt defend` | Join the loyalist side during an active revolt window. |
 | `/kingdom vote` | Open the voting GUI (voting phase only). |
 | `/kingdom menu` | Open the main kingdom GUI to navigate all features. |
 | `/kingdom help` | Show help text and available commands. |
@@ -142,7 +177,11 @@ All admin commands require operator level 2 (`isOp`).
 | `/kingdom admin give-orb <player>` | Give an Orb of Origin to a player. |
 | `/kingdom admin set-phase <phase>` | Manually set the election phase (`NOMINATION`, `VOTING`, etc.). |
 | `/kingdom admin debug-sync` | Validate and re-sync the current ruler's king origin. |
-| `/kingdom admin reload` | Placeholder — config is currently read at startup only; restart to apply changes. |
+| `/kingdom admin reload` | Reload `config.yml` in place for existing services. |
+| `/kingdom admin db-status` | Check basic database, player, election, and treasury state. |
+| `/kingdom admin election-status` | Show current election phase, timing, winner, and candidate count. |
+| `/kingdom admin treasury-ledger` | Show recent public treasury ledger entries. |
+| `/kingdom admin repair-office-state` | Repair `office_state.phase` from the active election or set it to `IDLE`. |
 
 ---
 
@@ -231,12 +270,95 @@ Corruption policies are asymmetric: the king gains personal power while subjects
 - **Silken Roads** (`silken_roads`): The roads bend toward the palace: the king gains Speed II while subjects suffer Slowness I.
 - **Dragon Seal** (`dragon_seal`): Forbidden seals protect the throne: the king gains Fire Resistance and subjects take 10 percent more damage.
 
+---
+
+## Treasury, Crowns, Taxes, and Revolts
+
+### Reserves and Crowns
+Crowns are the kingdom's state currency. They are backed only by diamonds and diamond blocks held in the treasury.
+
+- **Reserve value** = raw diamonds + diamond blocks x 9.
+- **Reserve ratio** = reserve value divided by Crown supply.
+- If the King mints more Crowns than the reserve can support, the currency becomes strained, debased, or insolvent.
+- Players can try to redeem Crowns for diamonds with `/kingdom treasury redeem <amount>`.
+- If redemption fails because reserves are empty, legitimacy drops sharply and unrest rises publicly.
+
+Reserve states:
+
+| State | Meaning |
+|---|---|
+| Fully Backed | Crown supply is fully covered by diamond reserves. Legitimacy improves and unrest cools. |
+| Stable | The treasury is healthy but not fully covered. Minor positive stability. |
+| Strained | Backing is thin. The public receives warnings and unrest starts rising. |
+| Debased | The currency is visibly overprinted. Legitimacy falls and unrest rises quickly. |
+| Insolvent | Crowns cannot be trusted. Failed redemption and revolt risk become likely. |
+
+### Taxes
+The King controls four tax channels:
+
+| Tax | Default/Cap | Collection |
+|---|---:|---|
+| XP tax | 0%, configurable cap, default 30% | Collected from server-side bonus XP events used by kingdom policies. |
+| Trade tax | 0%, configurable cap, default 30% | Collected when subjects interact with villagers. |
+| Resource tithe | 0%, configurable cap, default 30% | Collected from diamond ore and deepslate diamond ore breaks. |
+| Emergency levy | 0%, configurable cap, default 50% | A political emergency tax setting; high rates add heat and unrest. |
+
+Raising taxes is public. Large hikes reduce legitimacy and increase unrest, especially when rates go above 20%.
+
+### Spending Categories
+The King can spend with `/kingdom treasury spend <category> <amount>`.
+
+Public categories reduce unrest or improve legitimacy:
+
+| Category | Effect |
+|---|---|
+| `public_works` | Public legitimacy gain and modest unrest reduction. |
+| `military` | Funds defense; minor order benefit but slightly increases heat. |
+| `relief` | Strong welfare spending that cuts unrest. |
+| `infrastructure` | Improves legitimacy and lowers unrest. |
+| `festival` | Morale spending that cools unrest. |
+| `stabilization` | Expensive crisis response with the strongest unrest reduction. |
+
+Private/corrupt categories are viable but dangerous:
+
+| Category | Effect |
+|---|---|
+| `palace` | Royal household spending. Gives private value but raises heat and unrest. |
+| `siphon` | Direct private extraction. Strong corruption and unrest spike. |
+
+### Stability Values
+The mod tracks four separate political values:
+
+| Value | Role |
+|---|---|
+| Trust | Promise keeping, stored separately from elections and policy promises. |
+| Legitimacy | Whether the King is seen as rightful and competent. Reserves, spending, and scandals affect it. |
+| Corruption Heat | How visible and aggressive fiscal abuse has become. |
+| Unrest | How close the realm is to open revolt. At high unrest, the revolt window opens. |
+
+Unrest bands are **Calm**, **Uneasy**, **Unrest**, **Crisis**, and **Revolt Window**.
+
+### Revolt and Overthrow
+A King is never removed automatically for low popularity alone. Removal happens through a physical popular revolt.
+
+When unrest reaches the revolt threshold:
+
+- The server announces that the Revolt Window is open.
+- A revolt boss bar appears.
+- Players can join rebels with `/kingdom revolt join`.
+- Players can defend the crown with `/kingdom revolt defend`.
+- Rebels must capture the configured capital objective. The default is **0 64 0**.
+- Capture only progresses if enough rebels have joined and rebels outnumber loyalists inside the capital zone.
+- Loyalists and the King can contest the zone and push progress back.
+- At the configured capture target, the King is removed immediately, king powers are revoked through the existing ruler removal flow, treasury controls freeze briefly, unrest cools partially, and a snap election starts if elections are enabled.
+
+This means a corrupt King can try to burn the realm down during the 7-day term, but subjects have a real in-world path to remove them before the term ends.
 
 ---
 
 ## 🚧 Known Limitations / Roadmap
 
-- Config is loaded **once at startup**; `/kingdom admin reload` does not yet re-read `config.yml`. Restart the server to apply config changes.
+- `/kingdom admin reload` re-reads `config.yml` into the existing service graph. Long-running election timers that were already scheduled still use their persisted deadlines.
 - Only the **plurality** voting system is implemented. Ranked-choice and runoff are planned.
-- Map marker coordinates (Capital, Election Hall) are currently placeholders. Custom location configuration is planned.
-- The Orb of Origin crafting recipe works automatically from the built-in data. Verify your Origins version registers `origins:orb_of_origin`.
+- Map marker placement is still minimal; the revolt capital objective is configurable, but richer map marker configuration is planned.
+- Treasury tax hooks are intentionally lightweight for Fabric 1.20.1: resource tithe watches diamond ore breaks, trade tax watches villager interaction, and XP tax applies to kingdom policy XP events.

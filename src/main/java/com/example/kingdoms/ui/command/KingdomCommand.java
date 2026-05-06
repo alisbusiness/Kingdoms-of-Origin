@@ -9,10 +9,14 @@ import com.example.kingdoms.origin.OriginAdapter;
 import com.example.kingdoms.origin.OriginTransferService;
 import com.example.kingdoms.perk.PerkDefinition;
 import com.example.kingdoms.perk.PerkRegistry;
+import com.example.kingdoms.treasury.SpendingCategory;
+import com.example.kingdoms.treasury.TreasuryState;
+import com.example.kingdoms.treasury.TreasuryService;
 import com.example.kingdoms.ui.Messages;
 import com.example.kingdoms.ui.Permissions;
 import com.example.kingdoms.ui.gui.GuiService;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -111,6 +115,38 @@ public final class KingdomCommand {
         kingdom.then(CommandManager.literal("trust")
             .executes(this::cmdTrust));
 
+        kingdom.then(CommandManager.literal("treasury")
+            .requires(Permissions::isPlayer)
+            .executes(this::cmdTreasury)
+            .then(CommandManager.literal("gui").executes(ctx -> withPlayer(ctx, guiService::openTreasuryMenu)))
+            .then(CommandManager.literal("deposit")
+                .then(CommandManager.argument("diamonds", IntegerArgumentType.integer(0))
+                    .then(CommandManager.argument("blocks", IntegerArgumentType.integer(0))
+                        .executes(ctx -> cmdTreasuryDeposit(ctx, IntegerArgumentType.getInteger(ctx, "diamonds"), IntegerArgumentType.getInteger(ctx, "blocks"))))))
+            .then(CommandManager.literal("redeem")
+                .then(CommandManager.argument("amount", IntegerArgumentType.integer(1))
+                    .executes(ctx -> cmdRedeem(ctx, IntegerArgumentType.getInteger(ctx, "amount")))))
+            .then(CommandManager.literal("tax")
+                .then(CommandManager.argument("channel", StringArgumentType.word())
+                    .then(CommandManager.argument("rate", IntegerArgumentType.integer(0, 50))
+                        .executes(ctx -> cmdSetTax(ctx, StringArgumentType.getString(ctx, "channel"), IntegerArgumentType.getInteger(ctx, "rate"))))))
+            .then(CommandManager.literal("mint")
+                .then(CommandManager.argument("amount", IntegerArgumentType.integer(1, 500))
+                    .executes(ctx -> cmdMint(ctx, IntegerArgumentType.getInteger(ctx, "amount"), false))))
+            .then(CommandManager.literal("emergency-mint")
+                .then(CommandManager.argument("amount", IntegerArgumentType.integer(1, 500))
+                    .executes(ctx -> cmdMint(ctx, IntegerArgumentType.getInteger(ctx, "amount"), true))))
+            .then(CommandManager.literal("spend")
+                .then(CommandManager.argument("category", StringArgumentType.word())
+                    .then(CommandManager.argument("amount", IntegerArgumentType.integer(1, 250))
+                        .executes(ctx -> cmdSpend(ctx, StringArgumentType.getString(ctx, "category"), IntegerArgumentType.getInteger(ctx, "amount")))))));
+
+        kingdom.then(CommandManager.literal("revolt")
+            .requires(Permissions::isPlayer)
+            .executes(this::cmdRevolt)
+            .then(CommandManager.literal("join").executes(ctx -> cmdJoinRevolt(ctx, "rebel")))
+            .then(CommandManager.literal("defend").executes(ctx -> cmdJoinRevolt(ctx, "loyalist"))));
+
         kingdom.then(CommandManager.literal("help")
             .executes(this::cmdHelp));
 
@@ -157,6 +193,18 @@ public final class KingdomCommand {
 
         admin.then(CommandManager.literal("debug-sync")
             .executes(this::adminDebugSync));
+
+        admin.then(CommandManager.literal("db-status")
+            .executes(this::adminDbStatus));
+
+        admin.then(CommandManager.literal("election-status")
+            .executes(this::adminElectionStatus));
+
+        admin.then(CommandManager.literal("treasury-ledger")
+            .executes(this::adminTreasuryLedger));
+
+        admin.then(CommandManager.literal("repair-office-state")
+            .executes(this::adminRepairOfficeState));
 
         kingdom.then(admin);
 
@@ -378,6 +426,13 @@ public final class KingdomCommand {
         src.sendMessage(Messages.helpLine("/kingdom perks", "View active policies"));
         src.sendMessage(Messages.helpLine("/kingdom perk <id>", "Inspect a policy"));
         src.sendMessage(Messages.helpLine("/kingdom trust", "View king trust and promise history"));
+        src.sendMessage(Messages.helpLine("/kingdom treasury", "View reserves, taxes, currency, legitimacy, and unrest"));
+        src.sendMessage(Messages.helpLine("/kingdom treasury deposit <diamonds> <blocks>", "Deposit diamond reserves"));
+        src.sendMessage(Messages.helpLine("/kingdom treasury redeem <amount>", "Redeem currency for diamond reserves"));
+        src.sendMessage(Messages.helpLine("/kingdom treasury tax <xp|trade|resource|levy> <rate>", "King only: set tax rates"));
+        src.sendMessage(Messages.helpLine("/kingdom treasury mint <amount>", "King only: mint currency"));
+        src.sendMessage(Messages.helpLine("/kingdom treasury spend <category> <amount>", "King only: public or corrupt spending"));
+        src.sendMessage(Messages.helpLine("/kingdom revolt join|defend", "Join a revolt side when unrest opens the window"));
         src.sendMessage(Messages.helpLine("/kingdom ruler",      "Show ruler details"));
         src.sendMessage(Messages.helpLine("/kingdom menu",       "Open the main kingdom GUI"));
         if (Permissions.isAdmin(src)) {
@@ -388,6 +443,100 @@ public final class KingdomCommand {
 
     private int cmdMenu(CommandContext<ServerCommandSource> ctx) {
         return withPlayer(ctx, guiService::openMainMenu);
+    }
+
+    private int cmdTreasury(CommandContext<ServerCommandSource> ctx) {
+        ServerCommandSource src = ctx.getSource();
+        try {
+            TreasuryState s = plugin.getTreasuryService().state();
+            src.sendMessage(net.minecraft.text.Text.literal("Treasury: " + s.rawDiamonds() + " diamonds, " + s.diamondBlocks() + " blocks (" + s.reserveValue() + " diamond reserve)").formatted(s.reserveHealth().color()));
+            String currency = plugin.getTreasuryService().currencyName();
+            src.sendMessage(net.minecraft.text.Text.literal(currency + ": " + s.currencySupply() + " supply, reserve ratio " + Math.round(s.reserveRatio() * 100.0) + "%, " + s.reserveHealth().label()).formatted(s.reserveHealth().color()));
+            src.sendMessage(net.minecraft.text.Text.literal("Taxes: XP " + s.xpTaxRate() + "%, trade " + s.tradeTaxRate() + "%, resource " + s.resourceTitheRate() + "%, emergency levy " + s.emergencyLevyRate() + "%").formatted(net.minecraft.util.Formatting.GOLD));
+            src.sendMessage(net.minecraft.text.Text.literal("Trust/Legitimacy/Heat/Unrest: " + trustScore() + "/100, " + s.legitimacy() + "/100, " + s.corruptionHeat() + "/100, " + s.unrest() + "/100 (" + s.unrestBand().label() + ")").formatted(s.unrestBand().color()));
+            if (src.getEntity() instanceof ServerPlayerEntity player) {
+                src.sendMessage(net.minecraft.text.Text.literal("Your " + currency + ": " + plugin.getTreasuryService().balance(player.getUuidAsString())).formatted(net.minecraft.util.Formatting.AQUA));
+            }
+            if (s.revoltActive()) src.sendMessage(net.minecraft.text.Text.literal("Revolt active: capture the capital at " + plugin.getTreasuryService().capitalText() + ". Progress " + s.captureProgress() + "%").formatted(net.minecraft.util.Formatting.DARK_RED));
+        } catch (SQLException e) {
+            src.sendMessage(Messages.error("Could not load treasury."));
+        }
+        return 1;
+    }
+
+    private int cmdTreasuryDeposit(CommandContext<ServerCommandSource> ctx, int diamonds, int blocks) {
+        return withPlayer(ctx, player -> {
+            try {
+                plugin.getTreasuryService().depositReserves(player, diamonds, blocks);
+            } catch (SQLException e) {
+                player.sendMessage(Messages.error("Could not deposit reserves."), false);
+            }
+        });
+    }
+
+    private int cmdRedeem(CommandContext<ServerCommandSource> ctx, int amount) {
+        return withPlayer(ctx, player -> {
+            try {
+                plugin.getTreasuryService().redeem(player, amount);
+            } catch (SQLException e) {
+                player.sendMessage(Messages.error("Could not redeem Crowns."), false);
+            }
+        });
+    }
+
+    private int cmdSetTax(CommandContext<ServerCommandSource> ctx, String channel, int rate) {
+        return withPlayer(ctx, player -> {
+            try {
+                plugin.getTreasuryService().setTax(player, channel, rate);
+            } catch (Exception e) {
+                player.sendMessage(Messages.error(e.getMessage()), false);
+            }
+        });
+    }
+
+    private int cmdMint(CommandContext<ServerCommandSource> ctx, int amount, boolean emergency) {
+        return withPlayer(ctx, player -> {
+            try {
+                plugin.getTreasuryService().mint(player, amount, emergency);
+            } catch (Exception e) {
+                player.sendMessage(Messages.error(e.getMessage()), false);
+            }
+        });
+    }
+
+    private int cmdSpend(CommandContext<ServerCommandSource> ctx, String category, int amount) {
+        return withPlayer(ctx, player -> {
+            try {
+                SpendingCategory c = SpendingCategory.valueOf(category.toUpperCase());
+                plugin.getTreasuryService().spend(player, c, amount);
+            } catch (IllegalArgumentException e) {
+                player.sendMessage(Messages.error("Categories: public_works, military, relief, infrastructure, festival, stabilization, palace, siphon"), false);
+            } catch (Exception e) {
+                player.sendMessage(Messages.error(e.getMessage()), false);
+            }
+        });
+    }
+
+    private int cmdRevolt(CommandContext<ServerCommandSource> ctx) {
+        ServerCommandSource src = ctx.getSource();
+        try {
+            TreasuryState s = plugin.getTreasuryService().state();
+            src.sendMessage(net.minecraft.text.Text.literal("Revolt: " + (s.revoltActive() ? "ACTIVE" : "inactive") + ", unrest " + s.unrest() + "/100, capture " + s.captureProgress() + "%").formatted(s.revoltActive() ? net.minecraft.util.Formatting.DARK_RED : net.minecraft.util.Formatting.GRAY));
+            src.sendMessage(net.minecraft.text.Text.literal("Capital objective: stand near " + plugin.getTreasuryService().capitalText() + " during revolt. Rebels progress only if they outnumber loyalists in the zone.").formatted(net.minecraft.util.Formatting.YELLOW));
+        } catch (SQLException e) {
+            src.sendMessage(Messages.error("Could not load revolt status."));
+        }
+        return 1;
+    }
+
+    private int cmdJoinRevolt(CommandContext<ServerCommandSource> ctx, String side) {
+        return withPlayer(ctx, player -> {
+            try {
+                plugin.getTreasuryService().joinRevolt(player, side);
+            } catch (SQLException e) {
+                player.sendMessage(Messages.error("Could not join revolt."), false);
+            }
+        });
     }
 
     private int cmdStartElection(CommandContext<ServerCommandSource> ctx) {
@@ -507,14 +656,18 @@ public final class KingdomCommand {
     private int adminSetPhase(CommandContext<ServerCommandSource> ctx, String phase) {
         ServerCommandSource src = ctx.getSource();
         try {
-            ElectionPhase.valueOf(phase.toUpperCase());
+            ElectionPhase nextPhase = ElectionPhase.valueOf(phase.toUpperCase());
             String officeId = plugin.getConfig().office().id();
             electionService.getCurrentElection(officeId).ifPresentOrElse(election -> {
                 try {
-                    election.setStatus(phase.toUpperCase());
-                    plugin.getPersistence().elections().update(election);
-                    src.sendMessage(Messages.phaseSet(phase.toUpperCase()));
-                } catch (SQLException e) {
+                    var updated = electionService.setPhase(election.getId(), nextPhase);
+                    if (nextPhase == ElectionPhase.COMPLETE || nextPhase == ElectionPhase.IDLE) {
+                        plugin.getScheduleService().cancelTransition(updated.getId());
+                    } else {
+                        plugin.getScheduleService().scheduleNextTransition(updated);
+                    }
+                    src.sendMessage(Messages.phaseSet(nextPhase.name()));
+                } catch (SQLException | ElectionException e) {
                     src.sendMessage(Messages.error("A server error occurred."));
                 }
             }, () -> src.sendMessage(Messages.noActiveElection()));
@@ -549,6 +702,75 @@ public final class KingdomCommand {
         return 1;
     }
 
+    private int adminDbStatus(CommandContext<ServerCommandSource> ctx) {
+        ServerCommandSource src = ctx.getSource();
+        try {
+            String officeId = plugin.getConfig().office().id();
+            int players = plugin.getPersistence().players().findAll().size();
+            int elections = plugin.getPersistence().elections().findByOfficeId(officeId).size();
+            var treasury = plugin.getTreasuryService().state();
+            src.sendMessage(net.minecraft.text.Text.literal("DB OK: " + players + " players, " + elections + " elections for office '" + officeId + "'.").formatted(net.minecraft.util.Formatting.GREEN));
+            src.sendMessage(net.minecraft.text.Text.literal("Treasury row OK: reserve " + treasury.reserveValue() + ", supply " + treasury.currencySupply() + ".").formatted(net.minecraft.util.Formatting.GRAY));
+        } catch (SQLException e) {
+            KingdomsPlugin.LOGGER.error("DB status check failed", e);
+            src.sendMessage(Messages.error("Database check failed: " + e.getMessage()));
+        }
+        return 1;
+    }
+
+    private int adminElectionStatus(CommandContext<ServerCommandSource> ctx) {
+        ServerCommandSource src = ctx.getSource();
+        try {
+            String officeId = plugin.getConfig().office().id();
+            var current = electionService.getCurrentElection(officeId);
+            if (current.isEmpty()) {
+                src.sendMessage(Messages.noActiveElection());
+                return 1;
+            }
+            var e = current.get();
+            src.sendMessage(net.minecraft.text.Text.literal("Election " + e.getId() + ": " + e.getStatus() + ", winner=" + e.getWinnerUuid()).formatted(net.minecraft.util.Formatting.GOLD));
+            src.sendMessage(net.minecraft.text.Text.literal("Nomination opens " + e.getNominationOpensAt() + ", voting opens " + e.getVotingOpensAt() + ", voting closes " + e.getVotingClosesAt()).formatted(net.minecraft.util.Formatting.GRAY));
+            src.sendMessage(net.minecraft.text.Text.literal("Candidates: " + electionService.getCandidates(e.getId()).size()).formatted(net.minecraft.util.Formatting.GRAY));
+        } catch (SQLException e) {
+            src.sendMessage(Messages.error("Could not load election status."));
+        }
+        return 1;
+    }
+
+    private int adminTreasuryLedger(CommandContext<ServerCommandSource> ctx) {
+        ServerCommandSource src = ctx.getSource();
+        try {
+            var rows = plugin.getPersistence().treasury().recentPublicLedger(plugin.getConfig().office().id(), 10);
+            src.sendMessage(net.minecraft.text.Text.literal("Recent public treasury ledger").formatted(net.minecraft.util.Formatting.AQUA));
+            if (rows.isEmpty()) {
+                src.sendMessage(net.minecraft.text.Text.literal("No public ledger entries.").formatted(net.minecraft.util.Formatting.GRAY));
+            }
+            for (String row : rows) {
+                src.sendMessage(net.minecraft.text.Text.literal(row).formatted(net.minecraft.util.Formatting.GRAY));
+            }
+        } catch (SQLException e) {
+            src.sendMessage(Messages.error("Could not load treasury ledger."));
+        }
+        return 1;
+    }
+
+    private int adminRepairOfficeState(CommandContext<ServerCommandSource> ctx) {
+        ServerCommandSource src = ctx.getSource();
+        try {
+            String officeId = plugin.getConfig().office().id();
+            var current = electionService.getCurrentElection(officeId);
+            var state = plugin.getPersistence().officeStates().findByOfficeId(officeId)
+                .orElseGet(() -> new com.example.kingdoms.db.model.OfficeState(officeId, null, null, null, 0L, 0L, null, null));
+            state.setPhase(current.map(com.example.kingdoms.db.model.Election::getStatus).orElse(ElectionPhase.IDLE.name()));
+            plugin.getPersistence().officeStates().save(state);
+            src.sendMessage(net.minecraft.text.Text.literal("Office state repaired: phase=" + state.getPhase()).formatted(net.minecraft.util.Formatting.GREEN));
+        } catch (SQLException e) {
+            KingdomsPlugin.LOGGER.error("Office state repair failed", e);
+            src.sendMessage(Messages.error("Could not repair office state."));
+        }
+        return 1;
+    }
+
     // ------------------------------------------------------------------
     // Utilities
     // ------------------------------------------------------------------
@@ -572,6 +794,16 @@ public final class KingdomCommand {
                 .orElse(uuid);
         } catch (Exception e) {
             return uuid;
+        }
+    }
+
+    private int trustScore() {
+        String rulerUuid = officeService.getRuler();
+        if (rulerUuid == null) return 50;
+        try {
+            return plugin.getPersistence().trust().getScore(rulerUuid);
+        } catch (SQLException e) {
+            return 50;
         }
     }
 }

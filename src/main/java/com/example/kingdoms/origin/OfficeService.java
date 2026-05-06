@@ -7,6 +7,7 @@ import com.example.kingdoms.db.model.OfficeState;
 import com.example.kingdoms.election.ElectionResult;
 import com.example.kingdoms.election.ElectionService;
 import com.example.kingdoms.map.MapIntegrationService;
+import com.example.kingdoms.perk.PerkRegistry;
 import com.example.kingdoms.ui.AnnouncementService;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -161,7 +162,7 @@ public final class OfficeService {
             server.execute(() -> {
                 // Revoke legacy Origins-powered perks for all online players.
                 for (ServerPlayerEntity onlinePlayer : server.getPlayerManager().getPlayerList()) {
-                    for (String perk : com.example.kingdoms.ui.EventListeners.ALL_PERKS) {
+                    for (String perk : PerkRegistry.legacyOriginPowerIds()) {
                         server.getCommandManager().executeWithPrefix(server.getCommandSource(), 
                             "power revoke " + onlinePlayer.getName().getString() + " kingdoms_of_origin:perks/" + perk);
                     }

@@ -16,6 +16,9 @@ public final class SchemaManager {
     }
 
     public void applySchema() throws IOException, SQLException {
+        try (Statement st = conn.createStatement()) {
+            st.execute("PRAGMA foreign_keys = ON");
+        }
         String sql;
         try (InputStream in = getClass().getResourceAsStream("/db/schema.sql")) {
             if (in == null) throw new IOException("schema.sql not found in classpath");
@@ -28,6 +31,9 @@ public final class SchemaManager {
                     st.execute(trimmed);
                 }
             }
+        }
+        try (Statement st = conn.createStatement()) {
+            st.execute("PRAGMA user_version = 1");
         }
     }
 }

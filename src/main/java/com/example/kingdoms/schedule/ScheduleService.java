@@ -102,6 +102,10 @@ public final class ScheduleService {
         });
     }
 
+    public void cancelTransition(long electionId) {
+        cancelPending(electionId);
+    }
+
     public void forceAdvancePhase(long electionId) {
         cancelPending(electionId);
         executor.submit(() -> {

@@ -215,6 +215,21 @@ public final class ElectionService {
         return persistence.candidates().findByElectionId(electionId);
     }
 
+    public Election setPhase(long electionId, ElectionPhase phase) throws SQLException, ElectionException {
+        lock.lock();
+        try {
+            Election election = requireElection(electionId);
+            election.setStatus(phase.name());
+            persistence.elections().update(election);
+            setOfficePhase(election.getOfficeId(), phase.name());
+            LOGGER.info("Election {} phase manually set to {}", electionId, phase);
+            phaseListeners.forEach(l -> l.accept(election, phase));
+            return election;
+        } finally {
+            lock.unlock();
+        }
+    }
+
     // -------------------------------------------------------------------------
     // Winner callbacks
     // -------------------------------------------------------------------------
