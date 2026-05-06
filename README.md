@@ -122,6 +122,9 @@ These commands are available to all players:
 | `/kingdom run [slogan]` | Register yourself as a candidate (nomination phase only). |
 | `/kingdom promise <perks...>` | Declare your campaign promises as a candidate (comma-separated IDs). |
 | `/kingdom setperks <perks...>` | Set the active policies for the server (King only, comma-separated IDs). |
+| `/kingdom perks` | Open a read-only GUI showing the currently active kingdom policies. |
+| `/kingdom perk <id>` | Inspect a specific policy by ID. |
+| `/kingdom trust` | View the current ruler's trust score and recent promise history. |
 | `/kingdom vote` | Open the voting GUI (voting phase only). |
 | `/kingdom menu` | Open the main kingdom GUI to navigate all features. |
 | `/kingdom help` | Show help text and available commands. |
@@ -145,88 +148,88 @@ All admin commands require operator level 2 (`isOp`).
 
 
 ### 3. Royal Perks & Policies
-The King can enact global policies that apply to all their subjects! When a player runs for office, they can use `/kingdom promise <perks>` to declare what perks they will enact if they win. Once elected, the King can use `/kingdom setperks <perks>` to officially enforce their chosen policies (they may choose to honor their promises or lie!). 
+The King can enact server-side policies that feel like government decrees instead of flat stat modifiers. Policies trigger from gameplay events such as mining ore, harvesting crops, fighting mobs, sleeping, eating, taking damage, or moving through the world.
 
-Active perks are granted automatically when players join the server, and revoked when the King's term expires.
+Policies are selected through a chest GUI from the ruler panel or with `/kingdom setperks <ids...>`. Any player can view active policies with `/kingdom perks`, and candidates can promise policies before an election with `/kingdom promise <ids...>`.
 
-Currently, the following 65 perks and disadvantages are available. Use the **ID** (e.g., `miners_haste_i`) in the command.
+#### Policy Budget
+- Each term starts with **20 Policy Points**.
+- Minor policies cost **2** points.
+- Moderate policies cost **4** points.
+- Strong policies cost **6** points.
+- Debuff policies refund **3** points.
+- Corruption policies cost **0** points.
+- Only **one policy per category** may be active at a time.
+- The five categories are **Labor**, **Military**, **Economic**, **Social**, and **Corruption**.
 
-#### ⛏️ Mining Perks
-- **Miner's Haste I** (`kingdoms_of_origin:perks/miners_haste_i`): +10% Mining Speed.
-- **Miner's Haste II** (`kingdoms_of_origin:perks/miners_haste_ii`): +20% Mining Speed.
-- **Miner's Haste III** (`kingdoms_of_origin:perks/miners_haste_iii`): +30% Mining Speed.
-- **Deep Dark Resistance** (`kingdoms_of_origin:perks/deep_dark_resistance`): Immunity to Darkness and Blindness.
-- **Ore Doubling** (`kingdoms_of_origin:perks/ore_doubling`): Ores drop twice as much.
-- **Diamond Luck** (`kingdoms_of_origin:perks/diamond_luck`): Diamonds drop an extra gem.
-- **Unbreaking Tools** (`kingdoms_of_origin:perks/unbreaking_tools`): Tools take 10% less damage.
-- **Lava Immunity** (`kingdoms_of_origin:perks/lava_immunity`): Fire resistance while below Y=15.
-- **Spelunker's Glow** (`kingdoms_of_origin:perks/spelunkers_glow`): Night Vision underground.
-- **Obsidian Breaker** (`kingdoms_of_origin:perks/obsidian_breaker`): +50% mining speed on Obsidian.
+#### Promise vs. Reality
+Candidates can declare policy promises before an election. When the winning ruler enacts policies, the server compares the active policies against their promises:
 
-#### 🌾 Farming Perks
-- **Bountiful Harvest I** (`kingdoms_of_origin:perks/bountiful_harvest_i`): Extra crop drops.
-- **Green Thumb** (`kingdoms_of_origin:perks/green_thumb`): Always have Saturation in farmland.
-- **Butcher's Blade** (`kingdoms_of_origin:perks/butchers_blade`): +2 damage to animals.
-- **Vegan's Grace** (`kingdoms_of_origin:perks/vegans_grace`): Vegetables give more nourishment.
-- **Tractor** (`kingdoms_of_origin:perks/tractor`): +20% movement speed on dirt/grass.
-- **Shepherd** (`kingdoms_of_origin:perks/shepherd`): Sheep drop extra wool.
-- **Lumberjack** (`kingdoms_of_origin:perks/lumberjack`): +20% wood chopping speed.
-- **Apple Picker** (`kingdoms_of_origin:perks/apple_picker`): Leaves drop apples more often.
-- **Mushroom Forager** (`kingdoms_of_origin:perks/mushroom_forager`): Mushrooms give regeneration.
-- **Honey Lover** (`kingdoms_of_origin:perks/honey_lover`): Immune to bee poison.
+- Honored promises increase the ruler's trust score.
+- Broken promises reduce the ruler's trust score.
+- Each broken promise is broadcast publicly.
+- `/kingdom trust` shows the current ruler's score and recent promise history.
+- `/kingdom ruler` also displays the current ruler's trust score.
 
-#### 🎣 Fishing & Ocean Perks
-- **Master Angler I** (`kingdoms_of_origin:perks/master_angler_i`): Constant Lure I effect.
-- **Sea's Bounty I** (`kingdoms_of_origin:perks/seas_bounty_i`): Constant Luck of the Sea I effect.
-- **Deep Sea Diver** (`kingdoms_of_origin:perks/deep_sea_diver`): Water Breathing underwater.
-- **Aqua Affinity** (`kingdoms_of_origin:perks/aqua_affinity`): Normal mining speed underwater.
-- **Dolphin's Grace** (`kingdoms_of_origin:perks/dolphins_grace`): Swim speed boost.
-- **Fisher's Diet** (`kingdoms_of_origin:perks/fishers_diet`): Eating fish gives regeneration.
-- **Guardian Slayer** (`kingdoms_of_origin:perks/guardian_slayer`): +20% damage to aquatic mobs.
-- **Ocean Treasure** (`kingdoms_of_origin:perks/ocean_treasure`): Bonus XP when swimming.
-- **Squid's Ink** (`kingdoms_of_origin:perks/squids_ink`): Immune to blindness.
-- **Current Rider** (`kingdoms_of_origin:perks/current_rider`): Move faster in flowing water.
+#### Policy Categories
 
-#### ⚔️ Combat Perks
-- **Undead Slayer** (`kingdoms_of_origin:perks/undead_slayer`): +20% damage to undead.
-- **Arachnid Bane** (`kingdoms_of_origin:perks/arachnid_bane`): +20% damage to spiders.
-- **Creeper Resistance** (`kingdoms_of_origin:perks/creeper_resistance`): -20% damage from explosions.
-- **Enderman Slayer** (`kingdoms_of_origin:perks/enderman_slayer`): +20% damage to endermen.
-- **Royal Guard I** (`kingdoms_of_origin:perks/royal_guard_i`): +2 Armor.
-- **Royal Guard II** (`kingdoms_of_origin:perks/royal_guard_ii`): +4 Armor.
-- **Royal Vitality I** (`kingdoms_of_origin:perks/royal_vitality_i`): +2 Max Health.
-- **Royal Vitality II** (`kingdoms_of_origin:perks/royal_vitality_ii`): +4 Max Health.
-- **Swift Striker** (`kingdoms_of_origin:perks/swift_striker`): +10% attack speed.
-- **Iron Skin** (`kingdoms_of_origin:perks/iron_skin`): Immune to poison.
+##### Labor
+- **Iron Mandate** (`iron_mandate`): By royal order, every mined iron or copper ore has a one-in-three chance to drop an extra raw ore.
+- **Stone Covenant** (`stone_covenant`): The crown blesses public works: breaking stone below Y=32 grants Haste I for 12 seconds.
+- **Breadline** (`breadline`): The granaries open: harvesting fully grown wheat, carrots, potatoes, or beetroot restores 1 hunger once every 20 seconds.
+- **Charcoal Charter** (`charcoal_charter`): The forests serve the realm: chopping logs has a one-in-four chance to drop charcoal.
+- **Deep Levy** (`deep_levy`): The mines are mobilized: breaking deepslate ores grants Haste II for 10 seconds and 1 experience point.
+- **Green Commons** (`green_commons`): The commons are protected: breaking leaves has a one-in-five chance to return a matching sapling or apple.
+- **Canal Act** (`canal_act`): State canals speed labor: mining or harvesting while wet grants Dolphin's Grace for 8 seconds.
+- **Granary Audit** (`granary_audit`): The crown audits every harvest: crop harvesting sometimes withholds the bonus yield and refunds 3 Policy Points.
+- **Timber Quota** (`timber_quota`): Royal quotas bite: every tenth log chopped drops two extra sticks and grants Haste II for 15 seconds.
+- **Quarry Whistle** (`quarry_whistle`): When a miner breaks coal, redstone, or lapis ore, nearby subjects gain Haste I for 8 seconds.
 
-#### 💰 Economic & Misc Perks
-- **Hero of the Realm I** (`kingdoms_of_origin:perks/hero_of_the_realm_i`): Constant Hero of the Village I.
-- **Hero of the Realm II** (`kingdoms_of_origin:perks/hero_of_the_realm_ii`): Constant Hero of the Village II.
-- **Swift Messenger** (`kingdoms_of_origin:perks/swift_messenger`): +10% Movement Speed.
-- **Night Owl** (`kingdoms_of_origin:perks/night_owl`): +20% Speed at night.
-- **Early Bird** (`kingdoms_of_origin:perks/early_bird`): +20% Speed in morning.
-- **Enchanter's Wisdom** (`kingdoms_of_origin:perks/enchanters_wisdom`): +20% XP gained.
-- **Acrobat** (`kingdoms_of_origin:perks/acrobat`): -50% Fall Damage.
-- **Mountaineer** (`kingdoms_of_origin:perks/mountaineer`): Step height increased.
-- **Blessed Realm** (`kingdoms_of_origin:perks/blessed_realm`): Passive regeneration.
-- **Stout Heart** (`kingdoms_of_origin:perks/stout_heart`): Immune to fear (weakness).
+##### Military
+- **The People's Blade** (`peoples_blade`): Militia law is declared: after killing a hostile mob, gain Strength I for 10 seconds.
+- **Shield Wall Decree** (`shield_wall_decree`): The guard holds formation: blocking damage grants Resistance I for 6 seconds.
+- **Wolf Tax** (`wolf_tax`): Kennels are funded: killing a skeleton has a one-in-four chance to grant Speed I for 12 seconds.
+- **Last Stand Clause** (`last_stand_clause`): No subject falls quietly: dropping below 5 hearts grants Resistance II for 8 seconds once per minute.
+- **Monster Bounty** (`monster_bounty`): The treasury pays for safety: killing hostile mobs grants 1 extra experience.
+- **Siege Rations** (`siege_rations`): Wartime rations begin: everyone gains Strength I after eating but loses 1 hunger immediately.
+- **Blood Standard** (`blood_standard`): Wartime banners rise: everyone gains Strength I while below half health but has 2 fewer max hearts.
+- **Powder Inspection** (`powder_inspection`): Explosives are regulated: creeper and TNT damage grants Fire Resistance and Resistance for 8 seconds.
+- **Draft Notice** (`draft_notice`): The draft burdens all subjects: combat kills no longer trigger bounty XP and refund 3 Policy Points.
+- **Border Watch** (`border_watch`): Watch posts report danger: being hit by a projectile grants Speed I for 8 seconds.
 
-#### ⛓️ Dictator Disadvantages (Debuffs)
-- **Heavy Taxes I** (`kingdoms_of_origin:perks/heavy_taxes_i`): -10% XP gained.
-- **Heavy Taxes II** (`kingdoms_of_origin:perks/heavy_taxes_ii`): -20% XP gained.
-- **Forced Labor I** (`kingdoms_of_origin:perks/forced_labor_i`): Constant Mining Fatigue I.
-- **Forced Labor II** (`kingdoms_of_origin:perks/forced_labor_ii`): Constant Mining Fatigue II.
-- **Starvation Diet I** (`kingdoms_of_origin:perks/starvation_diet_i`): Hunger drains 10% faster.
-- **Starvation Diet II** (`kingdoms_of_origin:perks/starvation_diet_ii`): Hunger drains 20% faster.
-- **Oppression I** (`kingdoms_of_origin:perks/oppression_i`): Constant Weakness I.
-- **Oppression II** (`kingdoms_of_origin:perks/oppression_ii`): Constant Weakness II.
-- **Curfew** (`kingdoms_of_origin:perks/curfew`): Take 20% more damage at night.
-- **Disarmed Populace** (`kingdoms_of_origin:perks/disarmed_populace`): -20% Attack Damage.
-- **Frail Subjects** (`kingdoms_of_origin:perks/frail_subjects`): -2 Max Health.
-- **Fragile Armor** (`kingdoms_of_origin:perks/fragile_armor`): Take 10% more damage.
-- **Slowed Masses** (`kingdoms_of_origin:perks/slowed_masses`): Constant Slowness I.
-- **Unlucky Realm** (`kingdoms_of_origin:perks/unlucky_realm`): Constant Bad Omen I.
-- **Censorship** (`kingdoms_of_origin:perks/censorship`): Cannot use chat.
+##### Economic
+- **Guild Tithe** (`guild_tithe`): Guilds pay in kind: earning experience has a one-in-four chance to grant 1 extra experience.
+- **Minted Overtime** (`minted_overtime`): The mint rewards long labor: every fifth ore broken grants 3 experience.
+- **Market Day** (`market_day`): Market stalls open: trading with villagers grants Regeneration I for 8 seconds.
+- **Salvage Rights** (`salvage_rights`): Nothing is wasted: killing armored mobs has a chance to drop an iron nugget.
+- **Enchanter's License** (`enchanters_license`): Licensed scholars prosper: collecting an experience orb while near an enchanting table grants 2 bonus XP.
+- **Public Ledger** (`public_ledger`): The ledgers are open: every new active policy announces its cost and remaining Policy Points.
+- **Austerity Act** (`austerity_act`): Austerity is imposed: subjects lose 10 percent of earned experience and refund 3 Policy Points.
+- **Blacksmith Contract** (`blacksmith_contract`): The forges work for the realm: mining iron while holding a damaged tool repairs it by 1 durability.
+- **Fisher Auction** (`fisher_auction`): Dock auctions are sanctioned: catching fish grants Luck I for 12 seconds.
+- **War Bonds** (`war_bonds`): Wartime bonds sell fast: everyone gains 25 percent bonus XP from combat but takes 10 percent more damage.
+
+##### Social
+- **Open Roads Act** (`open_roads`): The highways are cleared: sprinting on roads, stone, or planks grants Speed I.
+- **Public Clinic** (`public_clinic`): The clinics open: sleeping or respawning grants Regeneration II for 15 seconds.
+- **Festival Law** (`festival_law`): The realm celebrates: eating sweet food grants Jump Boost I for 12 seconds.
+- **Safe Lodging** (`safe_lodging`): Inns receive funding: entering a bed clears Poison and Hunger.
+- **Courier Network** (`courier_network`): Royal couriers ride: after traveling 300 blocks, gain Speed II for 20 seconds.
+- **Night School** (`night_school`): Night schools convene: after sunset, subjects gain Night Vision while outdoors.
+- **Bread and Circuses** (`bread_and_circuses`): Wartime pageantry begins: everyone gains Speed II, but max health is reduced by 2 hearts.
+- **Ration Cards** (`ration_cards`): Rations are tightened: natural regeneration is slowed by Hunger I and refund 3 Policy Points.
+- **Civil Service** (`civil_service`): Helpful clerks reduce friction: opening the policy viewer shows the king's trust and current promises.
+- **Stone Shelters** (`stone_shelters`): Public shelters stand ready: taking fall damage grants Resistance I for 8 seconds.
+
+##### Corruption
+Corruption policies are asymmetric: the king gains personal power while subjects pay the cost. They cost 0 Policy Points, but promise breaks and public reaction can damage trust.
+
+- **Crown Tax** (`crown_tax`): The king claims first profit: the king gains 40 percent bonus XP while subjects lose 15 percent XP.
+- **Velvet Gaol** (`velvet_gaol`): The palace is secure: the king receives Resistance II while subjects suffer Mining Fatigue I.
+- **Royal Physician** (`royal_physician`): Court physicians serve one patient: the king receives Regeneration II while subjects cannot skip night.
+- **Private Armory** (`private_armory`): The royal armory closes to the public: the king gains Strength II while subjects suffer Weakness I.
+- **Silken Roads** (`silken_roads`): The roads bend toward the palace: the king gains Speed II while subjects suffer Slowness I.
+- **Dragon Seal** (`dragon_seal`): Forbidden seals protect the throne: the king gains Fire Resistance and subjects take 10 percent more damage.
 
 
 ---

@@ -159,7 +159,7 @@ public final class OfficeService {
         if (server != null) {
             boolean finalGiveOrb = giveOrb;
             server.execute(() -> {
-                // Revoke perks for all online players
+                // Revoke legacy Origins-powered perks for all online players.
                 for (ServerPlayerEntity onlinePlayer : server.getPlayerManager().getPlayerList()) {
                     for (String perk : com.example.kingdoms.ui.EventListeners.ALL_PERKS) {
                         server.getCommandManager().executeWithPrefix(server.getCommandSource(), 
@@ -192,6 +192,10 @@ public final class OfficeService {
         state.setActivePerks(null);
         persistence.officeStates().save(state);
         cachedState = state;
+        if (com.example.kingdoms.KingdomsPlugin.getInstance() != null
+                && com.example.kingdoms.KingdomsPlugin.getInstance().getPerkService() != null) {
+            com.example.kingdoms.KingdomsPlugin.getInstance().getPerkService().reloadActive();
+        }
 
         persistence.history().insert(new History(0, "office_removed",
                 holderUUID.toString(), null,

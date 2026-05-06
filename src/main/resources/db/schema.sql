@@ -55,3 +55,19 @@ CREATE TABLE IF NOT EXISTS history (
   payload_json TEXT,
   created_at INTEGER
 );
+
+CREATE TABLE IF NOT EXISTS ruler_trust (
+  ruler_uuid TEXT PRIMARY KEY,
+  trust_score INTEGER DEFAULT 50,
+  updated_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS promise_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ruler_uuid TEXT,
+  election_id INTEGER,
+  promised_perk TEXT,
+  enacted_perks TEXT,
+  honored INTEGER,
+  created_at INTEGER
+);

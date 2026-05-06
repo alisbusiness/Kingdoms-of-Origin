@@ -7,6 +7,8 @@ import com.example.kingdoms.election.ElectionService;
 import com.example.kingdoms.origin.OfficeService;
 import com.example.kingdoms.origin.OriginAdapter;
 import com.example.kingdoms.origin.OriginTransferService;
+import com.example.kingdoms.perk.PerkDefinition;
+import com.example.kingdoms.perk.PerkRegistry;
 import com.example.kingdoms.ui.Messages;
 import com.example.kingdoms.ui.Permissions;
 import com.example.kingdoms.ui.gui.GuiService;
@@ -97,6 +99,17 @@ public final class KingdomCommand {
             .executes(this::cmdSetPerksMenu)
             .then(CommandManager.argument("perks", StringArgumentType.greedyString())
                 .executes(ctx -> cmdSetPerks(ctx, StringArgumentType.getString(ctx, "perks")))));
+
+        kingdom.then(CommandManager.literal("perks")
+            .requires(Permissions::isPlayer)
+            .executes(this::cmdViewPerks));
+
+        kingdom.then(CommandManager.literal("perk")
+            .then(CommandManager.argument("id", StringArgumentType.word())
+                .executes(ctx -> cmdInspectPerk(ctx, StringArgumentType.getString(ctx, "id")))));
+
+        kingdom.then(CommandManager.literal("trust")
+            .executes(this::cmdTrust));
 
         kingdom.then(CommandManager.literal("help")
             .executes(this::cmdHelp));
@@ -248,8 +261,11 @@ public final class KingdomCommand {
             src.sendMessage(Messages.phaseLine(officeService.getPhase()));
             String activePerks = officeService.getActivePerks();
             if (activePerks != null && !activePerks.isBlank()) {
-                src.sendMessage(net.minecraft.text.Text.literal("Active Perks: " + activePerks).formatted(net.minecraft.util.Formatting.AQUA));
+                src.sendMessage(net.minecraft.text.Text.literal("Active Policies: " + activePerks).formatted(net.minecraft.util.Formatting.AQUA));
             }
+            try {
+                src.sendMessage(net.minecraft.text.Text.literal("Trust Score: " + plugin.getPersistence().trust().getScore(rulerUuid)).formatted(net.minecraft.util.Formatting.GREEN));
+            } catch (SQLException ignored) {}
         }
         return 1;
     }
@@ -260,10 +276,10 @@ public final class KingdomCommand {
 
     private int cmdPromise(CommandContext<ServerCommandSource> ctx, String perks) {
         return withPlayer(ctx, player -> {
-            String[] perksArr = perks.split("[,\\s]+");
-            long validCount = java.util.Arrays.stream(perksArr).filter(p -> !p.isBlank()).count();
-            if (validCount > 4) {
-                player.sendMessage(net.minecraft.text.Text.literal("You can only promise up to 4 perks!").formatted(net.minecraft.util.Formatting.RED), false);
+            var ids = PerkRegistry.parseIds(perks);
+            var budget = PerkRegistry.validateBudget(ids);
+            if (!budget.valid()) {
+                player.sendMessage(net.minecraft.text.Text.literal(String.join(" ", budget.errors())).formatted(net.minecraft.util.Formatting.RED), false);
                 return;
             }
 
@@ -274,10 +290,9 @@ public final class KingdomCommand {
                         var candidateOpt = plugin.getPersistence().candidates().findByElectionAndPlayer(election.getId(), player.getUuidAsString());
                         if (candidateOpt.isPresent()) {
                             var candidate = candidateOpt.get();
-                            candidate.setPromisedPerks(perks);
-                            plugin.getPersistence().candidates().delete(candidate.getId()); // Delete and re-insert to update
-                            plugin.getPersistence().candidates().insert(candidate);
-                            player.sendMessage(net.minecraft.text.Text.literal("Promised perks updated to: " + perks).formatted(net.minecraft.util.Formatting.GREEN), false);
+                            String encoded = PerkRegistry.serialize(ids);
+                            plugin.getPersistence().candidates().updatePromises(candidate.getId(), encoded);
+                            player.sendMessage(net.minecraft.text.Text.literal("Promised policies updated. Remaining Policy Points if enacted: " + budget.remaining()).formatted(net.minecraft.util.Formatting.GREEN), false);
                         } else {
                             player.sendMessage(net.minecraft.text.Text.literal("You must /kingdom run first.").formatted(net.minecraft.util.Formatting.RED), false);
                         }
@@ -297,13 +312,6 @@ public final class KingdomCommand {
 
     private int cmdSetPerks(CommandContext<ServerCommandSource> ctx, String perks) {
         return withPlayer(ctx, player -> {
-            String[] perksArr = perks.split("[,\\s]+");
-            long validCount = java.util.Arrays.stream(perksArr).filter(p -> !p.isBlank()).count();
-            if (validCount > 4) {
-                player.sendMessage(net.minecraft.text.Text.literal("You can only set up to 4 perks!").formatted(net.minecraft.util.Formatting.RED), false);
-                return;
-            }
-
             String rulerUuid = officeService.getRuler();
             if (rulerUuid == null || !rulerUuid.equals(player.getUuidAsString())) {
                 player.sendMessage(net.minecraft.text.Text.literal("Only the King can set perks!").formatted(net.minecraft.util.Formatting.RED), false);
@@ -315,20 +323,47 @@ public final class KingdomCommand {
             }
             
             try {
-                officeService.setActivePerks(perks);
-                player.sendMessage(net.minecraft.text.Text.literal("Active perks set to: " + perks).formatted(net.minecraft.util.Formatting.GREEN), false);
-                
-                // Grant powers to all players online
-                MinecraftServer server = ctx.getSource().getServer();
-                for (String perk : perks.split("[,\\s]+")) {
-                    if (perk.isBlank()) continue;
-                    String powerId = perk.contains(":") ? perk : "kingdoms_of_origin:perks/" + perk;
-                    server.getCommandManager().executeWithPrefix(server.getCommandSource(), "power grant @a " + powerId);
-                }
+                var result = plugin.getPerkService().activate(player, PerkRegistry.parseIds(perks));
+                player.sendMessage(net.minecraft.text.Text.literal(result.message()).formatted(result.success() ? net.minecraft.util.Formatting.GREEN : net.minecraft.util.Formatting.RED), false);
             } catch (SQLException e) {
                 player.sendMessage(Messages.error("Failed to save active perks."), false);
             }
         });
+    }
+
+    private int cmdViewPerks(CommandContext<ServerCommandSource> ctx) {
+        return withPlayer(ctx, guiService::openActivePerksMenu);
+    }
+
+    private int cmdInspectPerk(CommandContext<ServerCommandSource> ctx, String id) {
+        ServerCommandSource src = ctx.getSource();
+        PerkDefinition perk = PerkRegistry.find(id).orElse(null);
+        if (perk == null) {
+            src.sendMessage(net.minecraft.text.Text.literal("Unknown perk: " + id).formatted(net.minecraft.util.Formatting.RED));
+            return 0;
+        }
+        src.sendMessage(net.minecraft.text.Text.literal(perk.name() + " [" + perk.category().displayName() + ", " + perk.kind().label() + ", " + perk.cost() + " points]").formatted(net.minecraft.util.Formatting.GOLD));
+        src.sendMessage(net.minecraft.text.Text.literal(perk.description()).formatted(net.minecraft.util.Formatting.GRAY));
+        return 1;
+    }
+
+    private int cmdTrust(CommandContext<ServerCommandSource> ctx) {
+        ServerCommandSource src = ctx.getSource();
+        String rulerUuid = officeService.getRuler();
+        if (rulerUuid == null) {
+            src.sendMessage(Messages.noRuler());
+            return 1;
+        }
+        try {
+            src.sendMessage(net.minecraft.text.Text.literal("Trust Score: " + plugin.getPersistence().trust().getScore(rulerUuid) + "/100").formatted(net.minecraft.util.Formatting.GREEN));
+            String history = plugin.getPersistence().trust().recentHistory(rulerUuid, 5);
+            if (!history.isBlank()) {
+                for (String line : history.split("\\n")) src.sendMessage(net.minecraft.text.Text.literal(line).formatted(net.minecraft.util.Formatting.GRAY));
+            }
+        } catch (SQLException e) {
+            src.sendMessage(Messages.error("Could not load trust score."));
+        }
+        return 1;
     }
 
     private int cmdHelp(CommandContext<ServerCommandSource> ctx) {
@@ -340,6 +375,9 @@ public final class KingdomCommand {
         src.sendMessage(Messages.helpLine("/kingdom run [slogan]", "Register your candidacy"));
         src.sendMessage(Messages.helpLine("/kingdom promise <perks>", "Set your promised perks"));
         src.sendMessage(Messages.helpLine("/kingdom setperks <perks>", "King only: lock in active perks"));
+        src.sendMessage(Messages.helpLine("/kingdom perks", "View active policies"));
+        src.sendMessage(Messages.helpLine("/kingdom perk <id>", "Inspect a policy"));
+        src.sendMessage(Messages.helpLine("/kingdom trust", "View king trust and promise history"));
         src.sendMessage(Messages.helpLine("/kingdom ruler",      "Show ruler details"));
         src.sendMessage(Messages.helpLine("/kingdom menu",       "Open the main kingdom GUI"));
         if (Permissions.isAdmin(src)) {

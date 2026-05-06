@@ -21,6 +21,7 @@ public final class PersistenceService {
     private CandidateRepository candidates;
     private VoteRepository votes;
     private HistoryRepository history;
+    private TrustRepository trust;
 
     public PersistenceService(Path dataDir) {
         this.dataDir = dataDir;
@@ -40,6 +41,7 @@ public final class PersistenceService {
             candidates  = new CandidateRepository(connection);
             votes       = new VoteRepository(connection);
             history     = new HistoryRepository(connection);
+            trust       = new TrustRepository(connection);
 
             KingdomsPlugin.LOGGER.info("Database opened at {}", dbFile);
         } catch (IOException | SQLException e) {
@@ -61,4 +63,5 @@ public final class PersistenceService {
     public CandidateRepository candidates()     { return candidates; }
     public VoteRepository votes()               { return votes; }
     public HistoryRepository history()          { return history; }
+    public TrustRepository trust()              { return trust; }
 }

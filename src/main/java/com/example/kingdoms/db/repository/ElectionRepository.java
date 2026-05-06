@@ -53,6 +53,19 @@ public final class ElectionRepository {
         return Optional.empty();
     }
 
+    public Optional<Election> findMostRecentCompletedByOfficeId(String officeId) throws SQLException {
+        String sql = "SELECT id, office_id, status, nomination_opens_at, voting_opens_at, " +
+                     "voting_closes_at, winner_uuid, created_at FROM elections " +
+                     "WHERE office_id = ? AND status = 'COMPLETE' ORDER BY id DESC LIMIT 1";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, officeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return Optional.of(map(rs));
+            }
+        }
+        return Optional.empty();
+    }
+
     public long insert(Election election) throws SQLException {
         String sql = "INSERT INTO elections (office_id, status, nomination_opens_at, voting_opens_at, " +
                      "voting_closes_at, winner_uuid, created_at) VALUES (?,?,?,?,?,?,?)";

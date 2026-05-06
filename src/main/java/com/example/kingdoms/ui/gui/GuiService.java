@@ -6,6 +6,9 @@ import com.example.kingdoms.election.ElectionException;
 import com.example.kingdoms.election.ElectionPhase;
 import com.example.kingdoms.election.ElectionService;
 import com.example.kingdoms.origin.OfficeService;
+import com.example.kingdoms.perk.PerkCategory;
+import com.example.kingdoms.perk.PerkDefinition;
+import com.example.kingdoms.perk.PerkRegistry;
 import com.example.kingdoms.ui.AnnouncementService;
 import com.example.kingdoms.ui.Messages;
 import net.minecraft.inventory.SimpleInventory;
@@ -282,8 +285,8 @@ public final class GuiService {
 
         // Slot 13 — Set Active Perks
         inv.setStack(13, namedStack(Items.EMERALD,
-            Text.literal("Set Active Perks").formatted(Formatting.GREEN),
-            List.of(Text.literal("Select the 4 perks for your term.").formatted(Formatting.GRAY))));
+            Text.literal("Set Active Policies").formatted(Formatting.GREEN),
+            List.of(Text.literal("Spend up to 20 Policy Points.").formatted(Formatting.GRAY))));
 
         // Slot 14 — Abdicate
         inv.setStack(14, namedStack(Items.IRON_DOOR,
@@ -331,7 +334,8 @@ public final class GuiService {
 
     public void openPerkSelectionMenu(ServerPlayerEntity player, boolean isSetPerks, int page) {
         java.util.Set<String> selected = activePerkSelections.computeIfAbsent(player.getUuid(), k -> new java.util.HashSet<>());
-        int totalPerks = com.example.kingdoms.ui.EventListeners.ALL_PERKS.length;
+        java.util.List<PerkDefinition> perks = PerkRegistry.all();
+        int totalPerks = perks.size();
         int perksPerPage = 45;
         int totalPages = (int) Math.ceil((double) totalPerks / perksPerPage);
         
@@ -339,15 +343,23 @@ public final class GuiService {
         
         int startIndex = page * perksPerPage;
         int endIndex = Math.min(startIndex + perksPerPage, totalPerks);
+        java.util.Set<PerkCategory> selectedCategories = selected.stream()
+            .map(id -> PerkRegistry.find(id).map(PerkDefinition::category).orElse(null))
+            .filter(java.util.Objects::nonNull)
+            .collect(java.util.stream.Collectors.toSet());
         
         for (int i = startIndex; i < endIndex; i++) {
-            String perk = com.example.kingdoms.ui.EventListeners.ALL_PERKS[i];
-            boolean isSelected = selected.contains(perk);
+            PerkDefinition perk = perks.get(i);
+            boolean isSelected = selected.contains(perk.id());
+            boolean blockedByCategory = !isSelected && selectedCategories.contains(perk.category());
             
-            ItemStack stack = namedStack(isSelected ? Items.ENCHANTED_BOOK : Items.BOOK,
-                Text.literal(perk).formatted(isSelected ? Formatting.GREEN : Formatting.YELLOW),
+            ItemStack stack = namedStack(blockedByCategory ? Items.GRAY_DYE : (perk.category() == PerkCategory.CORRUPTION ? Items.REDSTONE : perk.icon()),
+                Text.literal(perk.name()).formatted(perk.category() == PerkCategory.CORRUPTION ? Formatting.RED : (isSelected ? Formatting.GREEN : Formatting.YELLOW)),
                 List.of(
-                    Text.literal(isSelected ? "Click to deselect" : "Click to select").formatted(Formatting.GRAY)
+                    Text.literal(perk.id()).formatted(Formatting.DARK_GRAY),
+                    Text.literal(perk.category().displayName() + " - " + perk.kind().label() + " (" + perk.cost() + " points)").formatted(Formatting.AQUA),
+                    Text.literal(perk.description()).formatted(Formatting.GRAY),
+                    Text.literal(blockedByCategory ? "Category already selected" : (isSelected ? "Click to deselect" : "Click to select")).formatted(blockedByCategory ? Formatting.RED : Formatting.WHITE)
                 ));
             if (isSelected) {
                 stack.addEnchantment(net.minecraft.enchantment.Enchantments.UNBREAKING, 1);
@@ -370,7 +382,10 @@ public final class GuiService {
             
         inv.setStack(49, namedStack(Items.EMERALD_BLOCK, 
             Text.literal("Confirm Selection").formatted(Formatting.GREEN),
-            List.of(Text.literal("Selected: " + selected.size() + "/4").formatted(Formatting.GRAY))));
+            List.of(
+                Text.literal("Selected: " + selected.size() + "/5 categories").formatted(Formatting.GRAY),
+                Text.literal("Remaining Policy Points: " + plugin.getPerkService().remainingPoints(new java.util.ArrayList<>(selected))).formatted(Formatting.AQUA)
+            )));
             
         String titleType = isSetPerks ? "Set Perks" : "Promised Perks";
         
@@ -378,14 +393,22 @@ public final class GuiService {
             if (slot < 45) {
                 int perkIndex = startIndex + slot;
                 if (perkIndex < totalPerks) {
-                    String perk = com.example.kingdoms.ui.EventListeners.ALL_PERKS[perkIndex];
-                    if (selected.contains(perk)) {
-                        selected.remove(perk);
+                    PerkDefinition perk = perks.get(perkIndex);
+                    if (selected.contains(perk.id())) {
+                        selected.remove(perk.id());
                     } else {
-                        if (selected.size() >= 4) {
-                            clicker.sendMessage(Text.literal("You can only select up to 4 perks!").formatted(Formatting.RED), false);
+                        boolean categoryTaken = selected.stream()
+                            .map(id -> PerkRegistry.find(id).map(PerkDefinition::category).orElse(null))
+                            .anyMatch(category -> category == perk.category());
+                        java.util.List<String> next = new java.util.ArrayList<>(selected);
+                        next.add(perk.id());
+                        var budget = PerkRegistry.validateBudget(next);
+                        if (categoryTaken) {
+                            clicker.sendMessage(Text.literal("Only one " + perk.category().displayName() + " policy may be active.").formatted(Formatting.RED), false);
+                        } else if (!budget.valid()) {
+                            clicker.sendMessage(Text.literal(String.join(" ", budget.errors())).formatted(Formatting.RED), false);
                         } else {
-                            selected.add(perk);
+                            selected.add(perk.id());
                         }
                     }
                     openPerkSelectionMenu(clicker, isSetPerks, page);
@@ -399,22 +422,61 @@ public final class GuiService {
                 openPerkSelectionMenu(clicker, isSetPerks, page);
             } else if (slot == 49) {
                 clicker.closeHandledScreen();
-                String perksStr = String.join(", ", selected);
+                String perksStr = PerkRegistry.serialize(new java.util.ArrayList<>(selected));
                 if (perksStr.isEmpty()) {
-                    clicker.sendMessage(Text.literal("No perks selected.").formatted(Formatting.YELLOW), false);
+                    clicker.sendMessage(Text.literal("No policies selected.").formatted(Formatting.YELLOW), false);
                     activePerkSelections.remove(clicker.getUuid());
                     return;
                 }
-                
-                MinecraftServer server = clicker.getServer();
-                if (server != null) {
-                    if (isSetPerks) {
-                        server.getCommandManager().executeWithPrefix(clicker.getCommandSource(), "kingdom setperks " + perksStr);
-                    } else {
-                        server.getCommandManager().executeWithPrefix(clicker.getCommandSource(), "kingdom promise " + perksStr);
-                    }
+                if (isSetPerks) {
+                    openPerkConfirmation(clicker, perksStr);
+                } else {
+                    MinecraftServer server = clicker.getServer();
+                    if (server != null) server.getCommandManager().executeWithPrefix(clicker.getCommandSource(), "kingdom promise " + perksStr);
+                    activePerkSelections.remove(clicker.getUuid());
                 }
+            }
+        });
+    }
+
+    public void openActivePerksMenu(ServerPlayerEntity player) {
+        java.util.List<String> ids = PerkRegistry.parseIds(officeService.getActivePerks());
+        SimpleInventory inv = new SimpleInventory(27);
+        int slot = 0;
+        for (String id : ids) {
+            PerkDefinition perk = PerkRegistry.find(id).orElse(null);
+            if (perk == null || slot >= 26) continue;
+            inv.setStack(slot++, namedStack(perk.icon(), Text.literal(perk.name()).formatted(Formatting.GOLD), List.of(
+                Text.literal(perk.category().displayName() + " - " + perk.kind().label()).formatted(Formatting.AQUA),
+                Text.literal(perk.description()).formatted(Formatting.GRAY)
+            )));
+        }
+        if (ids.isEmpty()) inv.setStack(13, namedStack(Items.BARRIER, Text.literal("No active policies").formatted(Formatting.GRAY), List.of()));
+        try {
+            String ruler = officeService.getRuler();
+            int trust = ruler == null ? 0 : plugin.getPersistence().trust().getScore(ruler);
+            inv.setStack(26, namedStack(Items.NAME_TAG, Text.literal("King Trust: " + trust + "/100").formatted(Formatting.GREEN), List.of()));
+        } catch (SQLException ignored) {}
+        openScreen(player, inv, 3, Text.literal("Active Kingdom Policies"), (slotId, clicker) -> {});
+    }
+
+    private void openPerkConfirmation(ServerPlayerEntity player, String perksStr) {
+        java.util.List<String> ids = PerkRegistry.parseIds(perksStr);
+        var budget = PerkRegistry.validateBudget(ids);
+        SimpleInventory inv = new SimpleInventory(9);
+        inv.setStack(2, namedStack(Items.LIME_CONCRETE, Text.literal("Confirm Policies").formatted(Formatting.GREEN), List.of(
+            Text.literal("Remaining Policy Points: " + budget.remaining()).formatted(Formatting.AQUA),
+            Text.literal(perksStr).formatted(Formatting.GRAY)
+        )));
+        inv.setStack(6, namedStack(Items.RED_CONCRETE, Text.literal("Cancel").formatted(Formatting.RED), List.of()));
+        openScreen(player, inv, 1, Text.literal("Confirm Policy Decree"), (slot, clicker) -> {
+            if (slot == 2) {
+                clicker.closeHandledScreen();
+                MinecraftServer server = clicker.getServer();
+                if (server != null) server.getCommandManager().executeWithPrefix(clicker.getCommandSource(), "kingdom setperks " + perksStr);
                 activePerkSelections.remove(clicker.getUuid());
+            } else if (slot == 6) {
+                openPerkSelectionMenu(clicker, true, 0);
             }
         });
     }

@@ -9,6 +9,7 @@ import com.example.kingdoms.origin.OriginAdapter;
 import com.example.kingdoms.origin.OriginTransferService;
 import com.example.kingdoms.origin.OriginsAdapterImpl;
 import com.example.kingdoms.origin.PlayerStateService;
+import com.example.kingdoms.perk.PerkService;
 import com.example.kingdoms.schedule.ScheduleService;
 import com.example.kingdoms.schedule.StartupRecoveryService;
 import com.example.kingdoms.map.MapIntegrationService;
@@ -49,6 +50,7 @@ public class KingdomsPlugin implements ModInitializer {
     private AnnouncementService announcementService;
     private EventListeners eventListeners;
     private MapIntegrationService mapIntegrationService;
+    private PerkService perkService;
 
     @Override
     public void onInitialize() {
@@ -115,6 +117,7 @@ public class KingdomsPlugin implements ModInitializer {
         officeService      = new OfficeService(persistence, config, electionService, transferService, clock);
         officeService.setAnnouncementService(announcementService);
         playerStateService = new PlayerStateService(originAdapter, persistence, config);
+        perkService = new PerkService(this, officeService);
 
         try {
             officeService.init();
@@ -129,6 +132,7 @@ public class KingdomsPlugin implements ModInitializer {
 
         eventListeners = new EventListeners(this, officeService, announcementService, playerStateService);
         eventListeners.register();
+        perkService.registerEvents();
 
         new KingdomCommand(this, electionService, officeService, transferService, guiService).register();
 
@@ -186,6 +190,7 @@ public class KingdomsPlugin implements ModInitializer {
     public EventListeners getEventListeners()               { return eventListeners; }
     public MapIntegrationService getMapIntegrationService() { return mapIntegrationService; }
     public AnnouncementService getAnnouncementService()     { return announcementService; }
+    public PerkService getPerkService()                     { return perkService; }
 
     private void ensureDefaultConfig(Path configDir) {
         Path configFile = configDir.resolve("config.yml");

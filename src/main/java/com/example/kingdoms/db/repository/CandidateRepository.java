@@ -57,6 +57,14 @@ public final class CandidateRepository {
         throw new SQLException("Insert returned no generated key");
     }
 
+    public void updatePromises(long id, String promisedPerks) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement("UPDATE candidates SET promised_perks = ? WHERE id = ?")) {
+            ps.setString(1, promisedPerks);
+            ps.setLong(2, id);
+            ps.executeUpdate();
+        }
+    }
+
     public void delete(long id) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement("DELETE FROM candidates WHERE id = ?")) {
             ps.setLong(1, id);

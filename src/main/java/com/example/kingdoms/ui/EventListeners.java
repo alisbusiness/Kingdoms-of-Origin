@@ -130,16 +130,8 @@ public final class EventListeners {
                     "power revoke " + player.getName().getString() + " kingdoms_of_origin:perks/" + perk);
             }
 
-            // 5. Grant active perks
-            String activePerks = officeService.getActivePerks();
-            if (activePerks != null && !activePerks.isBlank()) {
-                for (String perk : activePerks.split("[,\\s]+")) {
-                    if (perk.isBlank()) continue;
-                    String powerId = perk.contains(":") ? perk : "kingdoms_of_origin:perks/" + perk;
-                    server.getCommandManager().executeWithPrefix(server.getCommandSource(), 
-                        "power grant " + player.getName().getString() + " " + powerId);
-                }
-            }
+            // 5. New policy perks are enforced server-side by PerkService.
+            plugin.getPerkService().reloadActive();
         });
     }
 
