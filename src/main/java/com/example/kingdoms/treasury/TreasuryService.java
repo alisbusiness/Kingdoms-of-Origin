@@ -38,11 +38,11 @@ public final class TreasuryService {
         this.server = server;
     }
 
-    public TreasuryState state() throws SQLException {
+    public synchronized TreasuryState state() throws SQLException {
         return persistence.treasury().get(config.office().id());
     }
 
-    public int balance(String playerUuid) throws SQLException {
+    public synchronized int balance(String playerUuid) throws SQLException {
         return persistence.treasury().balance(playerUuid);
     }
 
@@ -50,7 +50,7 @@ public final class TreasuryService {
         return config.treasury().currencyName();
     }
 
-    public void depositReserves(ServerPlayerEntity actor, int diamonds, int blocks) throws SQLException {
+    public synchronized void depositReserves(ServerPlayerEntity actor, int diamonds, int blocks) throws SQLException {
         if (diamonds < 0 || blocks < 0) return;
         int removedDiamonds = removeItems(actor, Items.DIAMOND, diamonds);
         int removedBlocks = removeItems(actor, Items.DIAMOND_BLOCK, blocks);
@@ -70,7 +70,7 @@ public final class TreasuryService {
         auditAndMaybeRevolt("Reserve recovery");
     }
 
-    public void setTax(ServerPlayerEntity actor, String channel, int rate) throws SQLException {
+    public synchronized void setTax(ServerPlayerEntity actor, String channel, int rate) throws SQLException {
         requireKing(actor);
         TreasuryState s = state();
         int cap = switch (channel) {
@@ -102,7 +102,7 @@ public final class TreasuryService {
         auditAndMaybeRevolt("Tax hike");
     }
 
-    public void mint(ServerPlayerEntity actor, int amount, boolean emergency) throws SQLException {
+    public synchronized void mint(ServerPlayerEntity actor, int amount, boolean emergency) throws SQLException {
         requireKing(actor);
         TreasuryState s = state();
         if (s.revoltActive()) throw new IllegalStateException("Minting is suspended during active revolt.");
@@ -122,7 +122,7 @@ public final class TreasuryService {
         auditAndMaybeRevolt("Currency issuance");
     }
 
-    public void redeem(ServerPlayerEntity actor, int amount) throws SQLException {
+    public synchronized void redeem(ServerPlayerEntity actor, int amount) throws SQLException {
         int wanted = Math.max(1, amount);
         int bal = balance(actor.getUuidAsString());
         if (bal < wanted) {
@@ -160,7 +160,7 @@ public final class TreasuryService {
         auditAndMaybeRevolt("Redemption pressure");
     }
 
-    public void spend(ServerPlayerEntity actor, SpendingCategory category, int amount) throws SQLException {
+    public synchronized void spend(ServerPlayerEntity actor, SpendingCategory category, int amount) throws SQLException {
         requireKing(actor);
         TreasuryState s = state();
         int cost = Math.max(1, Math.min(amount, config.treasury().spendMax()));
@@ -178,7 +178,7 @@ public final class TreasuryService {
         auditAndMaybeRevolt("Treasury spending");
     }
 
-    public void collectTax(ServerPlayerEntity subject, String channel, int taxableAmount) {
+    public synchronized void collectTax(ServerPlayerEntity subject, String channel, int taxableAmount) {
         if (taxableAmount <= 0 || subject.getUuidAsString().equals(officeService.getRuler())) return;
         try {
             TreasuryState s = state();
@@ -204,7 +204,7 @@ public final class TreasuryService {
         }
     }
 
-    public void joinRevolt(ServerPlayerEntity player, String side) throws SQLException {
+    public synchronized void joinRevolt(ServerPlayerEntity player, String side) throws SQLException {
         TreasuryState s = state();
         if (!s.revoltActive()) {
             player.sendMessage(Text.literal("There is no active revolt window.").formatted(Formatting.RED), false);
@@ -215,7 +215,7 @@ public final class TreasuryService {
         broadcast(Text.literal(player.getName().getString() + " declared for the " + (normalized.equals("REBEL") ? "revolt." : "crown.")).formatted(normalized.equals("REBEL") ? Formatting.RED : Formatting.GOLD));
     }
 
-    public void onServerMinute(MinecraftServer server) {
+    public synchronized void onServerMinute(MinecraftServer server) {
         this.server = server;
         try {
             if (++auditTicks % 5 == 0) auditAndMaybeRevolt("Periodic audit");
@@ -225,7 +225,7 @@ public final class TreasuryService {
         }
     }
 
-    public void freezeTransition() throws SQLException {
+    public synchronized void freezeTransition() throws SQLException {
         TreasuryState s = state();
         save(copy(s, s.rawDiamonds(), s.diamondBlocks(), s.currencySupply(), s.taxesCollected(), s.publicSpending(),
             s.treasuryWithdrawals(), s.emergencyMinting(), s.xpTaxRate(), s.tradeTaxRate(), s.resourceTitheRate(),

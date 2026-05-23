@@ -15,10 +15,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
-import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Registers Fabric event callbacks for player join, server tick, chat interception,
@@ -34,10 +33,13 @@ public final class EventListeners {
     private final PlayerStateService playerStateService;
 
     private final Set<UUID> pendingSpeech =
-        Collections.synchronizedSet(Collections.newSetFromMap(new WeakHashMap<>()));
+        ConcurrentHashMap.newKeySet();
+    private final Set<UUID> pendingLawRewrite =
+        ConcurrentHashMap.newKeySet();
 
     private int tickCounter = 0;
     private static final int TICKS_PER_MINUTE = 20 * 60;
+    private static final int MAX_SPEECH_LENGTH = 256;
 
     public EventListeners(
         KingdomsPlugin plugin,
@@ -72,6 +74,14 @@ public final class EventListeners {
 
     public void clearPendingSpeech(UUID playerUuid) {
         pendingSpeech.remove(playerUuid);
+    }
+
+    public void setPendingLawRewrite(UUID playerUuid) {
+        pendingLawRewrite.add(playerUuid);
+    }
+
+    public void clearPendingLawRewrite(UUID playerUuid) {
+        pendingLawRewrite.remove(playerUuid);
     }
 
     // ------------------------------------------------------------------
@@ -163,12 +173,31 @@ public final class EventListeners {
     // ------------------------------------------------------------------
 
     private void registerChatListener() {
+        ServerMessageEvents.ALLOW_CHAT_MESSAGE.register((message, sender, params) -> {
+            UUID senderUuid = sender.getUuid();
+            if (!pendingLawRewrite.remove(senderUuid)) return true;
+
+            String text = message.getContent().getString();
+            if ("cancel".equalsIgnoreCase(text.trim())) {
+                sender.sendMessage(net.minecraft.text.Text.literal("Royal law rewrite cancelled.").formatted(net.minecraft.util.Formatting.GRAY), false);
+                return false;
+            }
+
+            try {
+                plugin.getLawService().replaceFromBook(sender, text);
+                sender.sendMessage(net.minecraft.text.Text.literal("Royal law book updated.").formatted(net.minecraft.util.Formatting.GREEN), false);
+            } catch (Exception e) {
+                sender.sendMessage(net.minecraft.text.Text.literal(e.getMessage()).formatted(net.minecraft.util.Formatting.RED), false);
+            }
+            return false;
+        });
+
         ServerMessageEvents.CHAT_MESSAGE.register((message, sender, params) -> {
             UUID senderUuid = sender.getUuid();
             if (!pendingSpeech.remove(senderUuid)) return;
 
             String rulerName = sender.getName().getString();
-            String text      = message.getContent().getString();
+            String text      = sanitizeSpeech(message.getContent().getString());
             announcementService.broadcastSpeech(rulerName, text);
         });
     }
@@ -202,5 +231,13 @@ public final class EventListeners {
         } catch (Exception e) {
             return uuid;
         }
+    }
+
+    private static String sanitizeSpeech(String text) {
+        if (text == null || text.isBlank()) return "";
+        String cleaned = text.replaceAll("\\p{Cntrl}", " ").replaceAll("\\s+", " ").trim();
+        return cleaned.length() <= MAX_SPEECH_LENGTH
+            ? cleaned
+            : cleaned.substring(0, MAX_SPEECH_LENGTH).trim();
     }
 }

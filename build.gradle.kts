@@ -48,6 +48,9 @@ dependencies {
     // BlueMap + Dynmap — soft/optional map integrations, compile-only
     compileOnly("de.bluecolored:bluemap-api:2.7.5")
     compileOnly("us.dynmap:DynmapCoreAPI:3.4-beta-3")
+
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
+    testImplementation("com.google.code.gson:gson:2.10.1")
 }
 
 java {
@@ -80,4 +83,8 @@ tasks.jar {
     from("LICENSE") {
         rename { "${it}_${base.archivesName.get()}" }
     }
+}
+
+tasks.test {
+    useJUnitPlatform()
 }

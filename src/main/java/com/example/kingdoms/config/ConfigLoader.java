@@ -1,6 +1,8 @@
 package com.example.kingdoms.config;
 
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -110,7 +112,10 @@ public final class ConfigLoader {
     }
 
     public static ConfigLoader load(Path configFile) {
-        Yaml yaml = new Yaml();
+        LoaderOptions loaderOptions = new LoaderOptions();
+        loaderOptions.setCodePointLimit(1_000_000);
+        loaderOptions.setMaxAliasesForCollections(20);
+        Yaml yaml = new Yaml(new SafeConstructor(loaderOptions));
         try (InputStream in = Files.newInputStream(configFile)) {
             Map<String, Object> raw = yaml.load(in);
             if (raw == null) raw = Map.of();

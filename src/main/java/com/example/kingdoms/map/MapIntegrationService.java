@@ -61,35 +61,19 @@ public final class MapIntegrationService {
 
     private void initBlueMap(String initialRulerName) {
         try {
-            de.bluecolored.bluemap.api.BlueMapAPI.getInstance().ifPresent(api -> {
-                try {
-                    for (de.bluecolored.bluemap.api.BlueMapMap map : api.getMaps()) {
-                        de.bluecolored.bluemap.api.markers.MarkerSet set =
-                            map.getMarkerSets().computeIfAbsent(
-                                MARKER_SET_ID,
-                                id -> de.bluecolored.bluemap.api.markers.MarkerSet.builder()
-                                    .label("Kingdoms of Origin")
-                                    .build()
-                            );
-
-                        if (config.map().showCapitalMarker()) {
-                            set.put(CAPITAL_MARKER_ID, de.bluecolored.bluemap.api.markers.POIMarker.builder()
-                                .label("Capital")
-                                .detail("<b>Capital</b><br>Ruler: " + escapeHtml(initialRulerName))
-                                .position(CAPITAL_X, CAPITAL_Y, CAPITAL_Z)
-                                .build());
-                        }
-
-                        set.put(ELECTION_HALL_MARKER_ID, de.bluecolored.bluemap.api.markers.POIMarker.builder()
-                            .label("Election Hall")
-                            .detail("<b>Election Hall</b><br>Vote here during elections.")
-                            .position(ELECTION_X, ELECTION_Y, ELECTION_Z)
-                            .build());
-                    }
-                } catch (Exception e) {
-                    LOGGER.warn("[Kingdoms] BlueMap marker init failed: {}", e.getMessage());
-                }
-            });
+            Class.forName("de.bluecolored.bluemap.api.BlueMapAPI", false, getClass().getClassLoader());
+            new BlueMapMapIntegration(
+                config.map().showCapitalMarker(),
+                CAPITAL_X,
+                CAPITAL_Y,
+                CAPITAL_Z,
+                ELECTION_X,
+                ELECTION_Y,
+                ELECTION_Z,
+                CAPITAL_MARKER_ID,
+                ELECTION_HALL_MARKER_ID,
+                MARKER_SET_ID
+            ).init(initialRulerName);
         } catch (NoClassDefFoundError | Exception e) {
             LOGGER.warn("[Kingdoms] BlueMap is not present; skipping map markers.");
         }
@@ -97,27 +81,19 @@ public final class MapIntegrationService {
 
     private void updateBlueMapRuler(String rulerName) {
         try {
-            de.bluecolored.bluemap.api.BlueMapAPI.getInstance().ifPresent(api -> {
-                try {
-                    for (de.bluecolored.bluemap.api.BlueMapMap map : api.getMaps()) {
-                        de.bluecolored.bluemap.api.markers.MarkerSet set =
-                            map.getMarkerSets().get(MARKER_SET_ID);
-                        if (set == null) return;
-
-                        de.bluecolored.bluemap.api.markers.Marker existing =
-                            set.get(CAPITAL_MARKER_ID);
-                        if (!(existing instanceof de.bluecolored.bluemap.api.markers.POIMarker poi)) return;
-
-                        set.put(CAPITAL_MARKER_ID, de.bluecolored.bluemap.api.markers.POIMarker.builder()
-                            .label("Capital")
-                            .detail("<b>Capital</b><br>Ruler: " + escapeHtml(rulerName))
-                            .position(poi.getPosition())
-                            .build());
-                    }
-                } catch (Exception e) {
-                    LOGGER.warn("[Kingdoms] BlueMap ruler update failed: {}", e.getMessage());
-                }
-            });
+            Class.forName("de.bluecolored.bluemap.api.BlueMapAPI", false, getClass().getClassLoader());
+            new BlueMapMapIntegration(
+                config.map().showCapitalMarker(),
+                CAPITAL_X,
+                CAPITAL_Y,
+                CAPITAL_Z,
+                ELECTION_X,
+                ELECTION_Y,
+                ELECTION_Z,
+                CAPITAL_MARKER_ID,
+                ELECTION_HALL_MARKER_ID,
+                MARKER_SET_ID
+            ).updateRuler(rulerName);
         } catch (NoClassDefFoundError | Exception e) {
             LOGGER.warn("[Kingdoms] BlueMap is not present; skipping ruler marker update.");
         }
@@ -129,53 +105,19 @@ public final class MapIntegrationService {
 
     private void initDynmap(String initialRulerName) {
         try {
-            org.dynmap.DynmapCommonAPIListener.register(new org.dynmap.DynmapCommonAPIListener() {
-                @Override
-                public void apiEnabled(org.dynmap.DynmapCommonAPI api) {
-                    try {
-                        org.dynmap.markers.MarkerAPI markerApi = api.getMarkerAPI();
-                        if (markerApi == null) {
-                            LOGGER.warn("[Kingdoms] Dynmap MarkerAPI is null; skipping markers.");
-                            return;
-                        }
-
-                        org.dynmap.markers.MarkerSet set = markerApi.getMarkerSet(MARKER_SET_ID);
-                        if (set == null) {
-                            set = markerApi.createMarkerSet(
-                                MARKER_SET_ID, "Kingdoms of Origin", null, false);
-                        }
-                        if (set == null) {
-                            LOGGER.warn("[Kingdoms] Could not create Dynmap marker set.");
-                            return;
-                        }
-
-                        if (config.map().showCapitalMarker()) {
-                            org.dynmap.markers.Marker capital =
-                                set.findMarker(CAPITAL_MARKER_ID);
-                            if (capital == null) {
-                                set.createMarker(CAPITAL_MARKER_ID, "Capital",
-                                    "world", CAPITAL_X, CAPITAL_Y, CAPITAL_Z,
-                                    markerApi.getMarkerIcon("default"), false);
-                            }
-                            if (capital != null) {
-                                capital.setDescription("<b>Capital</b><br>Ruler: " + escapeHtml(initialRulerName));
-                            }
-                        }
-
-                        org.dynmap.markers.Marker hall = set.findMarker(ELECTION_HALL_MARKER_ID);
-                        if (hall == null) {
-                            hall = set.createMarker(ELECTION_HALL_MARKER_ID, "Election Hall",
-                                "world", ELECTION_X, ELECTION_Y, ELECTION_Z,
-                                markerApi.getMarkerIcon("default"), false);
-                        }
-                        if (hall != null) {
-                            hall.setDescription("<b>Election Hall</b><br>Vote here during elections.");
-                        }
-                    } catch (Exception e) {
-                        LOGGER.warn("[Kingdoms] Dynmap marker init failed: {}", e.getMessage());
-                    }
-                }
-            });
+            Class.forName("org.dynmap.DynmapCommonAPIListener", false, getClass().getClassLoader());
+            new DynmapMapIntegration(
+                config.map().showCapitalMarker(),
+                CAPITAL_X,
+                CAPITAL_Y,
+                CAPITAL_Z,
+                ELECTION_X,
+                ELECTION_Y,
+                ELECTION_Z,
+                CAPITAL_MARKER_ID,
+                ELECTION_HALL_MARKER_ID,
+                MARKER_SET_ID
+            ).init(initialRulerName);
         } catch (NoClassDefFoundError | Exception e) {
             LOGGER.warn("[Kingdoms] Dynmap is not present; skipping map markers.");
         }

@@ -118,13 +118,56 @@ CREATE TABLE IF NOT EXISTS treasury_ledger (
   created_at INTEGER
 );
 
+CREATE TABLE IF NOT EXISTS kingdom_laws (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  position INTEGER NOT NULL,
+  text TEXT NOT NULL,
+  created_by_uuid TEXT,
+  created_at INTEGER,
+  updated_at INTEGER
+);
+
+UPDATE elections
+SET status = 'CANCELLED'
+WHERE status NOT IN ('COMPLETE','CANCELLED')
+  AND id NOT IN (
+    SELECT MAX(id)
+    FROM elections
+    WHERE status NOT IN ('COMPLETE','CANCELLED')
+    GROUP BY office_id
+  );
+
+DELETE FROM candidates
+WHERE id NOT IN (
+  SELECT MIN(id)
+  FROM candidates
+  GROUP BY election_id, player_uuid
+);
+
+DELETE FROM votes
+WHERE id NOT IN (
+  SELECT MIN(id)
+  FROM votes
+  GROUP BY election_id, voter_uuid
+);
+
 CREATE INDEX IF NOT EXISTS idx_elections_office_status
   ON elections (office_id, status, id DESC);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_elections_one_active_per_office
+  ON elections (office_id)
+  WHERE status NOT IN ('COMPLETE','CANCELLED');
 
 CREATE INDEX IF NOT EXISTS idx_candidates_election_player
   ON candidates (election_id, player_uuid);
 
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_candidates_election_player
+  ON candidates (election_id, player_uuid);
+
 CREATE INDEX IF NOT EXISTS idx_votes_election_voter
+  ON votes (election_id, voter_uuid);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_votes_election_voter
   ON votes (election_id, voter_uuid);
 
 CREATE INDEX IF NOT EXISTS idx_votes_election_candidate
@@ -135,3 +178,6 @@ CREATE INDEX IF NOT EXISTS idx_history_created_at
 
 CREATE INDEX IF NOT EXISTS idx_treasury_ledger_office_public
   ON treasury_ledger (office_id, public, id DESC);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_kingdom_laws_position
+  ON kingdom_laws (position);

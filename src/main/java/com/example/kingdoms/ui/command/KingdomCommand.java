@@ -4,6 +4,7 @@ import com.example.kingdoms.KingdomsPlugin;
 import com.example.kingdoms.election.ElectionException;
 import com.example.kingdoms.election.ElectionPhase;
 import com.example.kingdoms.election.ElectionService;
+import com.example.kingdoms.item.ModItems;
 import com.example.kingdoms.origin.OfficeService;
 import com.example.kingdoms.origin.OriginAdapter;
 import com.example.kingdoms.origin.OriginTransferService;
@@ -114,6 +115,20 @@ public final class KingdomCommand {
 
         kingdom.then(CommandManager.literal("trust")
             .executes(this::cmdTrust));
+
+        kingdom.then(CommandManager.literal("laws")
+            .requires(Permissions::isPlayer)
+            .executes(this::cmdLawsView)
+            .then(CommandManager.literal("view")
+                .executes(this::cmdLawsView))
+            .then(CommandManager.literal("book")
+                .executes(this::cmdLawsBook))
+            .then(CommandManager.literal("add")
+                .then(CommandManager.argument("text", StringArgumentType.greedyString())
+                    .executes(ctx -> cmdLawAdd(ctx, StringArgumentType.getString(ctx, "text")))))
+            .then(CommandManager.literal("remove")
+                .then(CommandManager.argument("number", IntegerArgumentType.integer(1))
+                    .executes(ctx -> cmdLawRemove(ctx, IntegerArgumentType.getInteger(ctx, "number"))))));
 
         kingdom.then(CommandManager.literal("treasury")
             .requires(Permissions::isPlayer)
@@ -273,8 +288,8 @@ public final class KingdomCommand {
                 String officeId = plugin.getConfig().office().id();
                 electionService.getCurrentElection(officeId).ifPresentOrElse(election -> {
                     try {
-                        electionService.registerCandidate(election.getId(), player.getUuidAsString(), slogan);
-                        player.sendMessage(Messages.registeredAsCandidate(slogan), false);
+                        var candidate = electionService.registerCandidate(election.getId(), player.getUuidAsString(), slogan);
+                        player.sendMessage(Messages.registeredAsCandidate(candidate.getSlogan()), false);
                     } catch (ElectionException e) {
                         String msg = e.getMessage();
                         if (msg.contains("already a candidate")) {
@@ -426,6 +441,10 @@ public final class KingdomCommand {
         src.sendMessage(Messages.helpLine("/kingdom perks", "View active policies"));
         src.sendMessage(Messages.helpLine("/kingdom perk <id>", "Inspect a policy"));
         src.sendMessage(Messages.helpLine("/kingdom trust", "View king trust and promise history"));
+        src.sendMessage(Messages.helpLine("/kingdom laws", "View royal laws"));
+        src.sendMessage(Messages.helpLine("/kingdom laws book", "Get the synchronized royal law book"));
+        src.sendMessage(Messages.helpLine("/kingdom laws add <text>", "King only: add a law"));
+        src.sendMessage(Messages.helpLine("/kingdom laws remove <number>", "King only: remove a law"));
         src.sendMessage(Messages.helpLine("/kingdom treasury", "View reserves, taxes, currency, legitimacy, and unrest"));
         src.sendMessage(Messages.helpLine("/kingdom treasury deposit <diamonds> <blocks>", "Deposit diamond reserves"));
         src.sendMessage(Messages.helpLine("/kingdom treasury redeem <amount>", "Redeem currency for diamond reserves"));
@@ -443,6 +462,55 @@ public final class KingdomCommand {
 
     private int cmdMenu(CommandContext<ServerCommandSource> ctx) {
         return withPlayer(ctx, guiService::openMainMenu);
+    }
+
+    private int cmdLawsView(CommandContext<ServerCommandSource> ctx) {
+        ServerCommandSource src = ctx.getSource();
+        try {
+            src.sendMessage(net.minecraft.text.Text.literal("Royal Laws").formatted(net.minecraft.util.Formatting.GOLD, net.minecraft.util.Formatting.BOLD));
+            String formatted = plugin.getLawService().formatForChat();
+            for (String line : formatted.split("\\n")) {
+                src.sendMessage(net.minecraft.text.Text.literal(line).formatted(net.minecraft.util.Formatting.GRAY));
+            }
+        } catch (SQLException e) {
+            src.sendMessage(Messages.error("Could not load royal laws."));
+        }
+        return 1;
+    }
+
+    private int cmdLawsBook(CommandContext<ServerCommandSource> ctx) {
+        return withPlayer(ctx, player -> {
+            var stack = ModItems.ROYAL_LAW_BOOK.createStack();
+            if (!player.getInventory().insertStack(stack)) {
+                player.dropItem(stack, false);
+            }
+            player.sendMessage(net.minecraft.text.Text.literal("Royal law book received. Every copy stays synced to the kingdom laws.").formatted(net.minecraft.util.Formatting.GREEN), false);
+        });
+    }
+
+    private int cmdLawAdd(CommandContext<ServerCommandSource> ctx, String text) {
+        return withPlayer(ctx, player -> {
+            try {
+                plugin.getLawService().addLaw(player, text);
+                player.sendMessage(net.minecraft.text.Text.literal("Law added.").formatted(net.minecraft.util.Formatting.GREEN), false);
+            } catch (Exception e) {
+                player.sendMessage(Messages.error(e.getMessage()), false);
+            }
+        });
+    }
+
+    private int cmdLawRemove(CommandContext<ServerCommandSource> ctx, int number) {
+        return withPlayer(ctx, player -> {
+            try {
+                if (plugin.getLawService().removeLaw(player, number)) {
+                    player.sendMessage(net.minecraft.text.Text.literal("Law removed.").formatted(net.minecraft.util.Formatting.GREEN), false);
+                } else {
+                    player.sendMessage(Messages.error("No law exists at number " + number + "."), false);
+                }
+            } catch (Exception e) {
+                player.sendMessage(Messages.error(e.getMessage()), false);
+            }
+        });
     }
 
     private int cmdTreasury(CommandContext<ServerCommandSource> ctx) {

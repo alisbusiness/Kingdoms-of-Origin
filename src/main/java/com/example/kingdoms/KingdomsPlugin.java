@@ -4,6 +4,8 @@ import com.example.kingdoms.config.ConfigLoader;
 import com.example.kingdoms.db.PersistenceService;
 import com.example.kingdoms.election.ElectionPhase;
 import com.example.kingdoms.election.ElectionService;
+import com.example.kingdoms.item.ModItems;
+import com.example.kingdoms.law.LawService;
 import com.example.kingdoms.origin.OfficeService;
 import com.example.kingdoms.origin.OriginAdapter;
 import com.example.kingdoms.origin.OriginTransferService;
@@ -53,10 +55,12 @@ public class KingdomsPlugin implements ModInitializer {
     private MapIntegrationService mapIntegrationService;
     private PerkService perkService;
     private TreasuryService treasuryService;
+    private LawService lawService;
 
     @Override
     public void onInitialize() {
         instance = this;
+        ModItems.register();
 
         configDir = FabricLoader.getInstance().getConfigDir().resolve(MOD_ID);
         ensureDefaultConfig(configDir);
@@ -122,6 +126,7 @@ public class KingdomsPlugin implements ModInitializer {
         perkService = new PerkService(this, officeService);
         treasuryService = new TreasuryService(persistence, config, officeService);
         treasuryService.setAnnouncementService(announcementService);
+        lawService = new LawService(persistence, officeService);
 
         try {
             officeService.init();
@@ -197,6 +202,7 @@ public class KingdomsPlugin implements ModInitializer {
     public AnnouncementService getAnnouncementService()     { return announcementService; }
     public PerkService getPerkService()                     { return perkService; }
     public TreasuryService getTreasuryService()             { return treasuryService; }
+    public LawService getLawService()                       { return lawService; }
 
     private void ensureDefaultConfig(Path configDir) {
         Path configFile = configDir.resolve("config.yml");

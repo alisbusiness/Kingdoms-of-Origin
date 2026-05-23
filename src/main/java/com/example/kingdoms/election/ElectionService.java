@@ -22,6 +22,7 @@ public final class ElectionService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ElectionService.class);
     private static final long MS_PER_DAY = 86_400_000L;
+    private static final int MAX_SLOGAN_LENGTH = 120;
 
     private final PersistenceService persistence;
     private final ConfigLoader config;
@@ -144,7 +145,7 @@ public final class ElectionService {
             });
 
             long now = clock.instant().toEpochMilli();
-            Candidate candidate = new Candidate(0, electionId, playerUuid, slogan, null, now);
+            Candidate candidate = new Candidate(0, electionId, playerUuid, sanitizeSlogan(slogan), null, now);
             long id = persistence.candidates().insert(candidate);
             candidate.setId(id);
 
@@ -305,5 +306,13 @@ public final class ElectionService {
             .orElseGet(() -> new OfficeState(officeId, null, null, null, 0L, 0L, null, null));
         state.setPhase(phase);
         persistence.officeStates().save(state);
+    }
+
+    private static String sanitizeSlogan(String slogan) {
+        if (slogan == null || slogan.isBlank()) return "";
+        String cleaned = slogan.replaceAll("\\p{Cntrl}", " ").replaceAll("\\s+", " ").trim();
+        return cleaned.length() <= MAX_SLOGAN_LENGTH
+            ? cleaned
+            : cleaned.substring(0, MAX_SLOGAN_LENGTH).trim();
     }
 }

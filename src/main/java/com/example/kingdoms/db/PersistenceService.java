@@ -23,6 +23,7 @@ public final class PersistenceService {
     private HistoryRepository history;
     private TrustRepository trust;
     private TreasuryRepository treasury;
+    private LawRepository laws;
 
     public PersistenceService(Path dataDir) {
         this.dataDir = dataDir;
@@ -33,6 +34,7 @@ public final class PersistenceService {
             Files.createDirectories(dataDir);
             Path dbFile = dataDir.resolve("kingdoms.db");
             connection = DriverManager.getConnection("jdbc:sqlite:" + dbFile.toAbsolutePath());
+            configureConnection();
 
             new SchemaManager(connection).applySchema();
 
@@ -44,6 +46,7 @@ public final class PersistenceService {
             history     = new HistoryRepository(connection);
             trust       = new TrustRepository(connection);
             treasury    = new TreasuryRepository(connection);
+            laws        = new LawRepository(connection);
 
             KingdomsPlugin.LOGGER.info("Database opened at {}", dbFile);
         } catch (IOException | SQLException e) {
@@ -67,4 +70,13 @@ public final class PersistenceService {
     public HistoryRepository history()          { return history; }
     public TrustRepository trust()              { return trust; }
     public TreasuryRepository treasury()         { return treasury; }
+    public LawRepository laws()                  { return laws; }
+
+    private void configureConnection() throws SQLException {
+        try (var st = connection.createStatement()) {
+            st.execute("PRAGMA foreign_keys = ON");
+            st.execute("PRAGMA busy_timeout = 5000");
+            st.execute("PRAGMA journal_mode = WAL");
+        }
+    }
 }
