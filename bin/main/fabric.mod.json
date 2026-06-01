@@ -3,19 +3,16 @@
   "id": "kingdoms_of_origin",
   "version": "${version}",
   "name": "Kingdoms of Origin",
-  "description": "A political office plugin integrating with the Origins mod.",
+  "description": "A server-side political office mod integrating with the Origins mod.",
   "authors": [
     "LiterallyShadow"
   ],
   "contact": {},
   "license": "MIT",
-  "environment": "*",
+  "environment": "server",
   "entrypoints": {
     "main": [
       "com.example.kingdoms.KingdomsPlugin"
-    ],
-    "client": [
-      "com.example.kingdoms.client.KingdomsClient"
     ]
   },
   "depends": {

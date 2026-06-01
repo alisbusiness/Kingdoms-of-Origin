@@ -4,7 +4,7 @@
   "description": "+2 Armor.",
   "modifier": {
     "attribute": "minecraft:generic.armor",
-    "operation": "add",
+    "operation": "addition",
     "value": 2
   }
 }

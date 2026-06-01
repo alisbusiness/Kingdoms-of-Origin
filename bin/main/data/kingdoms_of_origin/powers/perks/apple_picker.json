@@ -6,14 +6,5 @@
     "type": "origins:in_tag",
     "tag": "minecraft:leaves"
   },
-  "item_condition": {
-    "type": "origins:ingredient",
-    "ingredient": {
-      "item": "minecraft:apple"
-    }
-  },
-  "modifier": {
-    "operation": "add",
-    "value": 1
-  }
+  "allow": true
 }
