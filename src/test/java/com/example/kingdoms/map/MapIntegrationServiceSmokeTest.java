@@ -15,6 +15,20 @@ final class MapIntegrationServiceSmokeTest {
     Path tempDir;
 
     @Test
+    void missingBlueMapRuntimeDoesNotCrashMapService() throws IOException {
+        Path configFile = tempDir.resolve("config.yml");
+        Files.writeString(configFile, """
+            map:
+              provider: bluemap
+              show_capital_marker: true
+            """);
+
+        ConfigLoader config = ConfigLoader.load(configFile);
+
+        assertDoesNotThrow(() -> new MapIntegrationService(config).init());
+    }
+
+    @Test
     void missingDynmapRuntimeDoesNotCrashMapService() throws IOException {
         Path configFile = tempDir.resolve("config.yml");
         Files.writeString(configFile, """

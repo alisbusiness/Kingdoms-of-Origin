@@ -4,7 +4,6 @@ import com.example.kingdoms.config.ConfigLoader;
 import com.example.kingdoms.db.PersistenceService;
 import com.example.kingdoms.election.ElectionPhase;
 import com.example.kingdoms.election.ElectionService;
-import com.example.kingdoms.item.ModItems;
 import com.example.kingdoms.law.LawService;
 import com.example.kingdoms.origin.OfficeService;
 import com.example.kingdoms.origin.OriginAdapter;
@@ -60,7 +59,6 @@ public class KingdomsPlugin implements ModInitializer {
     @Override
     public void onInitialize() {
         instance = this;
-        ModItems.register();
 
         configDir = FabricLoader.getInstance().getConfigDir().resolve(MOD_ID);
         ensureDefaultConfig(configDir);

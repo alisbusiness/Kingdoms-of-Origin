@@ -9,7 +9,7 @@
     }
   },
   "food_modifier": {
-    "operation": "add",
+    "operation": "addition",
     "value": 2
   }
 }

@@ -1,0 +1,22 @@
+{
+  "type": "origins:attribute",
+  "modifiers": [
+    {
+      "attribute": "minecraft:generic.max_health",
+      "operation": "addition",
+      "value": 10
+    },
+    {
+      "attribute": "minecraft:generic.armor",
+      "operation": "addition",
+      "value": 4
+    },
+    {
+      "attribute": "minecraft:generic.armor_toughness",
+      "operation": "addition",
+      "value": 2
+    }
+  ],
+  "name": "Crown's Resilience",
+  "description": "The burden of the crown also fortifies its bearer."
+}

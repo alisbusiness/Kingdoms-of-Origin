@@ -1,0 +1,10 @@
+{
+  "type": "origins:attribute",
+  "name": "Swift Striker",
+  "description": "+10% attack speed.",
+  "modifier": {
+    "attribute": "minecraft:generic.attack_speed",
+    "operation": "multiply_total",
+    "value": 0.1
+  }
+}

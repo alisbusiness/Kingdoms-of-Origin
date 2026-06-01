@@ -19,17 +19,18 @@ The core of the mod is the democratic process. Elections happen automatically ba
 ### 2. The Power of The King
 When a player is crowned King, they are bestowed with **The King** origin. This grants them incredible abilities to enforce their rule, but balances it with severe weaknesses:
 - 👑 **Royal Decree (Primary Active):** Rally your subjects! Issue a command that grants Strength II and Resistance I to all players within 15 blocks for 15 seconds (60s Cooldown).
-- ⚡ **Wrath of the King (Secondary Active):** Call down a devastating bolt of lightning on whatever block or entity you are looking at up to 30 blocks away (30s Cooldown).
+- ⚡ **Wrath of the King (Secondary Active):** Call down a devastating bolt of lightning on whatever block or entity you are looking at up to 30 blocks away, shocking, slowing, and marking the target (30s Cooldown).
+- 🐺 **Royal Guard (Command Power):** Use `/kingdom summon-guard` to summon five empowered royal guards for 10 seconds, heal yourself, and briefly gain extra protection (10m Cooldown). This is command-based so players using clients without extra Origins keybind support can still use it.
 - 💥 **Iron Fist (Passive):** Strike with the weight of your realm (+3 Attack Damage).
 - 🛡️ **Crown's Resilience (Passive):** Fortified by the burden of the crown (+10 Max Health, +4 Armor, +2 Armor Toughness).
 - 🏃 **Sovereign's March (Passive):** Never slow to act (+15% Movement Speed).
-- 🪽 **Divine Flight (Passive):** Take to the skies to survey your domain using creative flight.
+- 🪽 **Divine Flight (Passive):** Take to the skies in a controlled Superman-style flight, slower than creative flight but still faster than walking.
 - ✨ **Royal Radiance (Drawback):** The crown marks you. All can see where you stand (Permanent Glowing effect).
 - 👁️ **Undeniable Presence (Drawback):** A king cannot hide from his people or enemies (Immunity to Invisibility potions).
 - 🎯 **Mark of the Crown (Drawback):** Enemies are drawn to power (Reduced Knockback Resistance).
 - 🤲 **Soft Hands (Drawback):** Accustomed to ruling, not manual labor (-30% Mining Speed).
 - 🏹 **Prime Target (Drawback):** An undeniable presence makes you an easy mark (+50% Projectile Damage Taken).
-- 🌑 **Creature of Light (Severe Drawback):** Your sovereign power is tied to the light. In darkness, your max health is halved, you take +50% more damage, and suffer from crippling Weakness, Slowness, and Mining Fatigue.
+- 🌑 **Creature of Light (Severe Drawback):** Your sovereign power is tied to the light. In darkness, your max health is halved, you take +50% more damage, suffer milder Weakness and Mining Fatigue, and are struck with Blindness.
 
 ### 3. Seamless Origin Transitions
 The mod integrates perfectly with your existing Origins.
@@ -77,6 +78,8 @@ The default capital objective is **0 64 0**, but the capital, capture radius, re
 4. (Optional) Customize the origins by editing the `data/kingdoms_of_origin/` files in the mod source and rebuilding.
 5. Start the server — `config/kingdoms_of_origin/config.yml` is generated automatically.
 6. The Origins are automatically loaded from within the mod itself!
+
+This jar is server-side only. Players do not need to update this mod on their clients when the server jar changes; the normal client requirements are still Minecraft/Fabric, Fabric API, and Origins when the server uses Origins features.
 
 ### Built-in Datapack
 The origin and power definitions are now bundled directly inside the mod jar!
@@ -140,6 +143,7 @@ These commands are available to all players:
 | Command | Description |
 |---|---|
 | `/kingdom status` | Show current ruler, term end, and election phase. |
+| `/kingdom origin` | Show your current Origins assignment. |
 | `/kingdom start-election` | Start a new election cycle (King only). |
 | `/kingdom ruler` | Show the current ruler's name, term details, and active perks. |
 | `/kingdom candidates` | List candidates in the current election. |
@@ -149,6 +153,7 @@ These commands are available to all players:
 | `/kingdom perks` | Open a read-only GUI showing the currently active kingdom policies. |
 | `/kingdom perk <id>` | Inspect a specific policy by ID. |
 | `/kingdom trust` | View the current ruler's trust score and recent promise history. |
+| `/kingdom summon-guard` | King only: summon five temporary royal guards, heal, and trigger a long cooldown. |
 | `/kingdom treasury` | View reserves, Crown supply, reserve ratio, taxes, legitimacy, corruption heat, unrest, and revolt status. |
 | `/kingdom treasury gui` | Open the treasury GUI. Also available from `/kingdom menu`. |
 | `/kingdom treasury deposit <diamonds> <blocks>` | Deposit diamonds and diamond blocks into the public reserve. |

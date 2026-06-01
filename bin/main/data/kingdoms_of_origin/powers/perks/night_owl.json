@@ -1,0 +1,15 @@
+{
+  "type": "origins:action_over_time",
+  "name": "Night Owl",
+  "description": "+20% Speed at night.",
+  "interval": 40,
+  "condition": {
+    "type": "origins:time_of_day",
+    "comparison": ">",
+    "compare_to": 13000
+  },
+  "entity_action": {
+    "type": "origins:execute_command",
+    "command": "effect give @s minecraft:speed 5 0 true"
+  }
+}

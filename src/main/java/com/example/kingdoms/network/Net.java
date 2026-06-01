@@ -8,4 +8,5 @@ public final class Net {
 
     public static final Identifier REQUEST_ORIGIN = new Identifier(KingdomsPlugin.MOD_ID, "request_origin");
     public static final Identifier SHOW_ORIGIN    = new Identifier(KingdomsPlugin.MOD_ID, "show_origin");
+    public static final Identifier OPEN_LAW_BOOK  = new Identifier(KingdomsPlugin.MOD_ID, "open_law_book");
 }

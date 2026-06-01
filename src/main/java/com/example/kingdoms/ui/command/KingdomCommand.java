@@ -4,9 +4,8 @@ import com.example.kingdoms.KingdomsPlugin;
 import com.example.kingdoms.election.ElectionException;
 import com.example.kingdoms.election.ElectionPhase;
 import com.example.kingdoms.election.ElectionService;
-import com.example.kingdoms.item.ModItems;
+import com.example.kingdoms.item.RoyalLawBookItem;
 import com.example.kingdoms.origin.OfficeService;
-import com.example.kingdoms.origin.OriginAdapter;
 import com.example.kingdoms.origin.OriginTransferService;
 import com.example.kingdoms.perk.PerkDefinition;
 import com.example.kingdoms.perk.PerkRegistry;
@@ -21,26 +20,43 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.command.argument.EntityArgumentType;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.entity.passive.WolfEntity;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 import java.sql.SQLException;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Registers all /kingdom commands using Fabric's Brigadier API.
  * Call {@link #register()} during ModInitializer.onInitialize() — before the server starts.
  */
 public final class KingdomCommand {
+    private static final int ROYAL_GUARD_COUNT = 5;
+    private static final int ROYAL_GUARD_LIFETIME_TICKS = 20 * 10;
+    private static final long ROYAL_GUARD_COOLDOWN_MILLIS = 10 * 60 * 1000L;
 
     private final KingdomsPlugin plugin;
     private final ElectionService electionService;
     private final OfficeService officeService;
     private final OriginTransferService transferService;
     private final GuiService guiService;
+    private final Map<UUID, Long> royalGuardCooldowns = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> activeRoyalGuards = new ConcurrentHashMap<>();
 
     public KingdomCommand(
         KingdomsPlugin plugin,
@@ -59,6 +75,7 @@ public final class KingdomCommand {
     public void register() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
             build(dispatcher));
+        ServerTickEvents.END_SERVER_TICK.register(this::tickRoyalGuards);
     }
 
     // ------------------------------------------------------------------
@@ -74,6 +91,10 @@ public final class KingdomCommand {
         kingdom.then(CommandManager.literal("status")
             .requires(Permissions::isPlayer)
             .executes(this::cmdStatus));
+
+        kingdom.then(CommandManager.literal("origin")
+            .requires(Permissions::isPlayer)
+            .executes(this::cmdOrigin));
 
         kingdom.then(CommandManager.literal("vote")
             .requires(Permissions::isPlayer)
@@ -173,6 +194,10 @@ public final class KingdomCommand {
             .requires(Permissions::isPlayer)
             .executes(this::cmdStartElection));
 
+        kingdom.then(CommandManager.literal("summon-guard")
+            .requires(Permissions::isPlayer)
+            .executes(this::cmdSummonGuard));
+
         // --- Admin sub-commands ---
 
         var admin = CommandManager.literal("admin")
@@ -245,6 +270,23 @@ public final class KingdomCommand {
         }
         src.sendMessage(Messages.phaseLine(phase));
         return 1;
+    }
+
+    private int cmdOrigin(CommandContext<ServerCommandSource> ctx) {
+        return withPlayer(ctx, player -> {
+            var adapter = plugin.getOriginAdapter();
+            if (adapter == null) {
+                player.sendMessage(Text.literal("Origins integration is not active on this server.").formatted(Formatting.YELLOW), false);
+                return;
+            }
+
+            String primary = adapter.getCurrentOrigin(player);
+            player.sendMessage(Text.literal("Your Origin").formatted(Formatting.GOLD, Formatting.BOLD), false);
+            player.sendMessage(Text.literal("Primary: " + displayOrigin(primary)).formatted(Formatting.GRAY), false);
+            if (player.getUuidAsString().equals(officeService.getRuler())) {
+                player.sendMessage(Text.literal("Office: " + plugin.getConfig().originMode().kingOriginId()).formatted(Formatting.AQUA), false);
+            }
+        });
     }
 
     private int cmdVote(CommandContext<ServerCommandSource> ctx) {
@@ -433,6 +475,7 @@ public final class KingdomCommand {
         ServerCommandSource src = ctx.getSource();
         src.sendMessage(Messages.helpHeader());
         src.sendMessage(Messages.helpLine("/kingdom status",     "Show current ruler and election phase"));
+        src.sendMessage(Messages.helpLine("/kingdom origin",     "Show your current Origins assignment"));
         src.sendMessage(Messages.helpLine("/kingdom vote",       "Open the voting GUI"));
         src.sendMessage(Messages.helpLine("/kingdom candidates", "List current candidates in chat"));
         src.sendMessage(Messages.helpLine("/kingdom run [slogan]", "Register your candidacy"));
@@ -442,7 +485,7 @@ public final class KingdomCommand {
         src.sendMessage(Messages.helpLine("/kingdom perk <id>", "Inspect a policy"));
         src.sendMessage(Messages.helpLine("/kingdom trust", "View king trust and promise history"));
         src.sendMessage(Messages.helpLine("/kingdom laws", "View royal laws"));
-        src.sendMessage(Messages.helpLine("/kingdom laws book", "Get the synchronized royal law book"));
+        src.sendMessage(Messages.helpLine("/kingdom laws book", "Get a current royal law book"));
         src.sendMessage(Messages.helpLine("/kingdom laws add <text>", "King only: add a law"));
         src.sendMessage(Messages.helpLine("/kingdom laws remove <number>", "King only: remove a law"));
         src.sendMessage(Messages.helpLine("/kingdom treasury", "View reserves, taxes, currency, legitimacy, and unrest"));
@@ -452,6 +495,7 @@ public final class KingdomCommand {
         src.sendMessage(Messages.helpLine("/kingdom treasury mint <amount>", "King only: mint currency"));
         src.sendMessage(Messages.helpLine("/kingdom treasury spend <category> <amount>", "King only: public or corrupt spending"));
         src.sendMessage(Messages.helpLine("/kingdom revolt join|defend", "Join a revolt side when unrest opens the window"));
+        src.sendMessage(Messages.helpLine("/kingdom summon-guard", "King only: summon temporary royal guards"));
         src.sendMessage(Messages.helpLine("/kingdom ruler",      "Show ruler details"));
         src.sendMessage(Messages.helpLine("/kingdom menu",       "Open the main kingdom GUI"));
         if (Permissions.isAdmin(src)) {
@@ -480,11 +524,18 @@ public final class KingdomCommand {
 
     private int cmdLawsBook(CommandContext<ServerCommandSource> ctx) {
         return withPlayer(ctx, player -> {
-            var stack = ModItems.ROYAL_LAW_BOOK.createStack();
-            if (!player.getInventory().insertStack(stack)) {
-                player.dropItem(stack, false);
+            try {
+                var stack = RoyalLawBookItem.createStack(
+                    plugin.getLawService().latestUpdatedAt(),
+                    plugin.getLawService().laws()
+                );
+                if (!player.getInventory().insertStack(stack)) {
+                    player.dropItem(stack, false);
+                }
+                player.sendMessage(Text.literal("Royal law book received. Run /kingdom laws book again for a fresh copy after updates.").formatted(Formatting.GREEN), false);
+            } catch (SQLException e) {
+                player.sendMessage(Messages.error("Could not create royal law book."), false);
             }
-            player.sendMessage(net.minecraft.text.Text.literal("Royal law book received. Every copy stays synced to the kingdom laws.").formatted(net.minecraft.util.Formatting.GREEN), false);
         });
     }
 
@@ -623,6 +674,28 @@ public final class KingdomCommand {
                 KingdomsPlugin.LOGGER.error("Start election failed", e);
                 player.sendMessage(Messages.error("A server error occurred."), false);
             }
+        });
+    }
+
+    private int cmdSummonGuard(CommandContext<ServerCommandSource> ctx) {
+        return withPlayer(ctx, player -> {
+            if (!plugin.getLawService().isKing(player)) {
+                player.sendMessage(Text.literal("Only the King can summon the royal guard.").formatted(Formatting.RED), false);
+                return;
+            }
+
+            long now = System.currentTimeMillis();
+            long nextUse = royalGuardCooldowns.getOrDefault(player.getUuid(), 0L);
+            if (now < nextUse) {
+                long remainingSeconds = Math.max(1L, (nextUse - now + 999L) / 1000L);
+                player.sendMessage(Text.literal("Royal Guard is on cooldown for " + formatDuration(remainingSeconds) + ".").formatted(Formatting.RED), false);
+                return;
+            }
+
+            summonRoyalGuards(player);
+            healKing(player);
+            royalGuardCooldowns.put(player.getUuid(), now + ROYAL_GUARD_COOLDOWN_MILLIS);
+            player.sendMessage(Text.literal("The royal guard answers your call.").formatted(Formatting.GOLD), false);
         });
     }
 
@@ -865,6 +938,13 @@ public final class KingdomCommand {
         }
     }
 
+    private static String displayOrigin(String originId) {
+        if (originId == null || originId.isBlank() || "origins:empty".equals(originId)) {
+            return "none";
+        }
+        return originId;
+    }
+
     private int trustScore() {
         String rulerUuid = officeService.getRuler();
         if (rulerUuid == null) return 50;
@@ -873,5 +953,67 @@ public final class KingdomCommand {
         } catch (SQLException e) {
             return 50;
         }
+    }
+
+    private void summonRoyalGuards(ServerPlayerEntity player) {
+        ServerWorld world = player.getServerWorld();
+        long expireAt = world.getTime() + ROYAL_GUARD_LIFETIME_TICKS;
+        for (int i = 0; i < ROYAL_GUARD_COUNT; i++) {
+            WolfEntity guard = EntityType.WOLF.create(world);
+            if (guard == null) continue;
+
+            double angle = (Math.PI * 2.0 * i) / ROYAL_GUARD_COUNT;
+            double x = player.getX() + Math.cos(angle) * 2.0;
+            double z = player.getZ() + Math.sin(angle) * 2.0;
+            guard.refreshPositionAndAngles(x, player.getY(), z, player.getYaw(), 0.0F);
+            guard.setTamed(true);
+            guard.setOwnerUuid(player.getUuid());
+            guard.setCustomName(Text.literal("Royal Guard").formatted(Formatting.GOLD));
+            guard.setCustomNameVisible(true);
+            guard.addStatusEffect(new StatusEffectInstance(StatusEffects.STRENGTH, ROYAL_GUARD_LIFETIME_TICKS, 4, false, true, true));
+            guard.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, ROYAL_GUARD_LIFETIME_TICKS, 2, false, true, true));
+            guard.addStatusEffect(new StatusEffectInstance(StatusEffects.SPEED, ROYAL_GUARD_LIFETIME_TICKS, 1, false, true, true));
+            guard.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION, ROYAL_GUARD_LIFETIME_TICKS, 2, false, true, true));
+            guard.setHealth(guard.getMaxHealth());
+
+            world.spawnEntity(guard);
+            activeRoyalGuards.put(guard.getUuid(), expireAt);
+        }
+    }
+
+    private void healKing(ServerPlayerEntity player) {
+        player.heal(12.0F);
+        player.addStatusEffect(new StatusEffectInstance(StatusEffects.REGENERATION, 20 * 10, 1, false, true, true));
+        player.addStatusEffect(new StatusEffectInstance(StatusEffects.RESISTANCE, 20 * 5, 1, false, true, true));
+    }
+
+    private void tickRoyalGuards(MinecraftServer server) {
+        if (activeRoyalGuards.isEmpty()) return;
+        long now = server.getOverworld().getTime();
+        Iterator<Map.Entry<UUID, Long>> iterator = activeRoyalGuards.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, Long> entry = iterator.next();
+            if (now < entry.getValue()) continue;
+            discardEntity(server, entry.getKey());
+            iterator.remove();
+        }
+    }
+
+    private void discardEntity(MinecraftServer server, UUID uuid) {
+        for (ServerWorld world : server.getWorlds()) {
+            Entity entity = world.getEntity(uuid);
+            if (entity != null) {
+                entity.discard();
+                return;
+            }
+        }
+    }
+
+    private static String formatDuration(long totalSeconds) {
+        long minutes = totalSeconds / 60L;
+        long seconds = totalSeconds % 60L;
+        if (minutes <= 0L) return seconds + "s";
+        if (seconds == 0L) return minutes + "m";
+        return minutes + "m " + seconds + "s";
     }
 }

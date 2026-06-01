@@ -6,8 +6,5 @@
     "type": "origins:block",
     "block": "minecraft:diamond_ore"
   },
-  "modifier": {
-    "operation": "add",
-    "value": 1
-  }
+  "allow": true
 }

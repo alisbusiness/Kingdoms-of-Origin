@@ -1,0 +1,28 @@
+{
+  "type": "origins:active_self",
+  "entity_action": {
+    "type": "origins:raycast",
+    "distance": 30,
+    "bientity_action": {
+      "type": "origins:target_action",
+      "action": {
+        "type": "origins:execute_command",
+        "command": "summon lightning_bolt ~ ~ ~"
+      }
+    },
+    "block_action": {
+      "type": "origins:execute_command",
+      "command": "summon lightning_bolt ~ ~ ~"
+    }
+  },
+  "cooldown": 600,
+  "hud_render": {
+    "should_render": true,
+    "bar_index": 3
+  },
+  "key": {
+    "key": "key.origins.secondary_active"
+  },
+  "name": "Wrath of the King",
+  "description": "Call down a devastating bolt of lightning on whatever you are looking at. (30s Cooldown)"
+}

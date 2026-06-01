@@ -1,0 +1,15 @@
+{
+  "type": "origins:modify_food",
+  "name": "Vegan's Grace",
+  "description": "Vegetables give more nourishment.",
+  "item_condition": {
+    "type": "origins:ingredient",
+    "ingredient": {
+      "item": "minecraft:carrot"
+    }
+  },
+  "food_modifier": {
+    "operation": "add",
+    "value": 2
+  }
+}

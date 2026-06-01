@@ -1,0 +1,10 @@
+{
+  "type": "origins:attribute",
+  "name": "Swift Messenger",
+  "description": "+10% Movement Speed.",
+  "modifier": {
+    "attribute": "minecraft:generic.movement_speed",
+    "operation": "multiply_total",
+    "value": 0.1
+  }
+}

@@ -18,7 +18,9 @@ public final class ServerNetworking {
                 }
                 PacketByteBuf out = new PacketByteBuf(Unpooled.buffer());
                 out.writeString(originId);
-                ServerPlayNetworking.send(player, Net.SHOW_ORIGIN, out);
+                if (ServerPlayNetworking.canSend(player, Net.SHOW_ORIGIN)) {
+                    ServerPlayNetworking.send(player, Net.SHOW_ORIGIN, out);
+                }
             }));
     }
 }

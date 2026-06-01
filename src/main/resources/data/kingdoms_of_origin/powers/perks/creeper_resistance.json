@@ -7,6 +7,6 @@
     "value": -0.2
   },
   "damage_condition": {
-    "type": "origins:is_explosion"
+    "type": "origins:explosive"
   }
 }

@@ -1,9 +1,11 @@
 package com.example.kingdoms.map;
 
-import com.example.kingdoms.KingdomsPlugin;
 import com.example.kingdoms.config.ConfigLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 
 /**
  * Integrates with BlueMap or Dynmap to display kingdom POI markers.
@@ -61,41 +63,19 @@ public final class MapIntegrationService {
 
     private void initBlueMap(String initialRulerName) {
         try {
-            Class.forName("de.bluecolored.bluemap.api.BlueMapAPI", false, getClass().getClassLoader());
-            new BlueMapMapIntegration(
-                config.map().showCapitalMarker(),
-                CAPITAL_X,
-                CAPITAL_Y,
-                CAPITAL_Z,
-                ELECTION_X,
-                ELECTION_Y,
-                ELECTION_Z,
-                CAPITAL_MARKER_ID,
-                ELECTION_HALL_MARKER_ID,
-                MARKER_SET_ID
-            ).init(initialRulerName);
-        } catch (NoClassDefFoundError | Exception e) {
-            LOGGER.warn("[Kingdoms] BlueMap is not present; skipping map markers.");
+            requireClass("de.bluecolored.bluemap.api.BlueMapAPI");
+            invokeProvider("com.example.kingdoms.map.BlueMapMapIntegration", "init", initialRulerName);
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException e) {
+            LOGGER.warn("[Kingdoms] BlueMap is not present or has an incompatible API; skipping map markers.");
         }
     }
 
     private void updateBlueMapRuler(String rulerName) {
         try {
-            Class.forName("de.bluecolored.bluemap.api.BlueMapAPI", false, getClass().getClassLoader());
-            new BlueMapMapIntegration(
-                config.map().showCapitalMarker(),
-                CAPITAL_X,
-                CAPITAL_Y,
-                CAPITAL_Z,
-                ELECTION_X,
-                ELECTION_Y,
-                ELECTION_Z,
-                CAPITAL_MARKER_ID,
-                ELECTION_HALL_MARKER_ID,
-                MARKER_SET_ID
-            ).updateRuler(rulerName);
-        } catch (NoClassDefFoundError | Exception e) {
-            LOGGER.warn("[Kingdoms] BlueMap is not present; skipping ruler marker update.");
+            requireClass("de.bluecolored.bluemap.api.BlueMapAPI");
+            invokeProvider("com.example.kingdoms.map.BlueMapMapIntegration", "updateRuler", rulerName);
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException e) {
+            LOGGER.warn("[Kingdoms] BlueMap is not present or has an incompatible API; skipping ruler marker update.");
         }
     }
 
@@ -105,20 +85,9 @@ public final class MapIntegrationService {
 
     private void initDynmap(String initialRulerName) {
         try {
-            Class.forName("org.dynmap.DynmapCommonAPIListener", false, getClass().getClassLoader());
-            new DynmapMapIntegration(
-                config.map().showCapitalMarker(),
-                CAPITAL_X,
-                CAPITAL_Y,
-                CAPITAL_Z,
-                ELECTION_X,
-                ELECTION_Y,
-                ELECTION_Z,
-                CAPITAL_MARKER_ID,
-                ELECTION_HALL_MARKER_ID,
-                MARKER_SET_ID
-            ).init(initialRulerName);
-        } catch (NoClassDefFoundError | Exception e) {
+            requireClass("org.dynmap.DynmapCommonAPIListener");
+            invokeProvider("com.example.kingdoms.map.DynmapMapIntegration", "init", initialRulerName);
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException e) {
             LOGGER.warn("[Kingdoms] Dynmap is not present; skipping map markers.");
         }
     }
@@ -141,8 +110,51 @@ public final class MapIntegrationService {
     // Utilities
     // -------------------------------------------------------------------------
 
-    private static String escapeHtml(String s) {
-        if (s == null) return "Unknown";
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    private void requireClass(String className) throws ClassNotFoundException {
+        Class.forName(className, false, getClass().getClassLoader());
+    }
+
+    private void invokeProvider(String className, String methodName, String value)
+        throws ReflectiveOperationException {
+        Object providerIntegration = createProviderIntegration(className);
+        try {
+            var method = providerIntegration.getClass().getDeclaredMethod(methodName, String.class);
+            method.setAccessible(true);
+            method.invoke(providerIntegration, value);
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof Error error) throw error;
+            if (cause instanceof RuntimeException runtimeException) throw runtimeException;
+            throw e;
+        }
+    }
+
+    private Object createProviderIntegration(String className) throws ReflectiveOperationException {
+        Class<?> integrationClass = Class.forName(className, true, getClass().getClassLoader());
+        Constructor<?> constructor = integrationClass.getDeclaredConstructor(
+            boolean.class,
+            double.class,
+            double.class,
+            double.class,
+            double.class,
+            double.class,
+            double.class,
+            String.class,
+            String.class,
+            String.class
+        );
+        constructor.setAccessible(true);
+        return constructor.newInstance(
+            config.map().showCapitalMarker(),
+            CAPITAL_X,
+            CAPITAL_Y,
+            CAPITAL_Z,
+            ELECTION_X,
+            ELECTION_Y,
+            ELECTION_Z,
+            CAPITAL_MARKER_ID,
+            ELECTION_HALL_MARKER_ID,
+            MARKER_SET_ID
+        );
     }
 }

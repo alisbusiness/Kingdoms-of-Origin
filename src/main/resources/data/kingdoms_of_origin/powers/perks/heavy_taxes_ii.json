@@ -1,5 +1,5 @@
 {
-  "type": "origins:modify_experience",
+  "type": "origins:modify_xp_gain",
   "name": "Heavy Taxes II",
   "description": "-20% XP gained.",
   "modifier": {

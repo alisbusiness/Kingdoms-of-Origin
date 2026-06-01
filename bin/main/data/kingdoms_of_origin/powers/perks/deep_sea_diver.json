@@ -1,0 +1,14 @@
+{
+  "type": "origins:action_over_time",
+  "name": "Deep Sea Diver",
+  "description": "Water Breathing underwater.",
+  "interval": 40,
+  "condition": {
+    "type": "origins:submerged_in",
+    "fluid": "minecraft:water"
+  },
+  "entity_action": {
+    "type": "origins:execute_command",
+    "command": "effect give @s minecraft:water_breathing 5 0 true"
+  }
+}

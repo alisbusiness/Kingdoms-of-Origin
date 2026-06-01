@@ -1,0 +1,10 @@
+{
+  "type": "origins:action_over_time",
+  "name": "Blessed Realm",
+  "description": "Passive regeneration.",
+  "interval": 200,
+  "entity_action": {
+    "type": "origins:execute_command",
+    "command": "effect give @s minecraft:regeneration 2 0 true"
+  }
+}

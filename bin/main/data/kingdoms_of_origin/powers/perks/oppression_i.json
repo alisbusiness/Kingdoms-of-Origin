@@ -1,0 +1,10 @@
+{
+  "type": "origins:action_over_time",
+  "name": "Oppression I",
+  "description": "Constant Weakness I.",
+  "interval": 100,
+  "entity_action": {
+    "type": "origins:execute_command",
+    "command": "effect give @s minecraft:weakness 6 0 true"
+  }
+}
