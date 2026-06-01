@@ -1,0 +1,10 @@
+{
+  "type": "origins:attribute",
+  "name": "Royal Vitality II",
+  "description": "+4 Max Health.",
+  "modifier": {
+    "attribute": "minecraft:generic.max_health",
+    "operation": "addition",
+    "value": 4
+  }
+}

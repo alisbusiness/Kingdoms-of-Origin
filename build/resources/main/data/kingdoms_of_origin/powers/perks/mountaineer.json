@@ -1,0 +1,9 @@
+{
+  "type": "origins:modify_jump",
+  "name": "Mountaineer",
+  "description": "Jump height increased.",
+  "modifier": {
+    "operation": "addition",
+    "value": 0.2
+  }
+}

@@ -1,0 +1,58 @@
+office:
+  id: "king"
+  display_name: "King"
+  term_days: 7
+  election_enabled: true
+  nomination_days: 2
+  campaign_days: 2
+  voting_days: 1
+
+origin_mode:
+  king_origin_id: "kingdoms_of_origin:king"
+
+origin_restore:
+  restore_previous_origin_on_term_end: true
+  clear_king_origin_on_term_end: true
+
+transition:
+  give_orb_on_transfer: true
+  give_orb_on_abdication: true
+  give_orb_on_forced_removal: false
+
+voting:
+  system: "plurality"
+  minimum_playtime_minutes: 60
+  anonymous_votes: true
+
+ui:
+  use_scoreboard_announcements: true
+  use_bossbar_during_election: true
+  send_chat_broadcasts: true
+
+map:
+  provider: "bluemap"   # values: bluemap, dynmap, none
+  show_capital_marker: true
+
+treasury:
+  currency_name: "Crowns"
+  mint_max: 500
+  spend_max: 250
+  transition_freeze_minutes: 30
+  tax_caps:
+    xp: 30
+    trade: 30
+    resource: 30
+    levy: 50
+
+revolt:
+  threshold: 80
+  capture_required: 100
+  capture_radius: 18.0
+  capital:
+    x: 0.0
+    y: 64.0
+    z: 0.0
+
+debug:
+  log_origin_transfers: true
+  log_gui_actions: false

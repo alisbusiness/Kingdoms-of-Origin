@@ -1,0 +1,9 @@
+{
+  "type": "origins:modify_xp_gain",
+  "name": "Enchanter's Wisdom",
+  "description": "+20% XP gained.",
+  "modifier": {
+    "operation": "multiply_total",
+    "value": 0.2
+  }
+}

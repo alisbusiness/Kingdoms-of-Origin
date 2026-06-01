@@ -1,0 +1,10 @@
+{
+  "type": "origins:modify_harvest",
+  "name": "Bountiful Harvest I",
+  "description": "Extra crop drops.",
+  "block_condition": {
+    "type": "origins:in_tag",
+    "tag": "minecraft:crops"
+  },
+  "allow": true
+}

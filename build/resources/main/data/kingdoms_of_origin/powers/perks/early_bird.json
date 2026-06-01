@@ -1,0 +1,15 @@
+{
+  "type": "origins:action_over_time",
+  "name": "Early Bird",
+  "description": "+20% Speed in morning.",
+  "interval": 40,
+  "condition": {
+    "type": "origins:time_of_day",
+    "comparison": "<",
+    "compare_to": 6000
+  },
+  "entity_action": {
+    "type": "origins:execute_command",
+    "command": "effect give @s minecraft:speed 5 0 true"
+  }
+}

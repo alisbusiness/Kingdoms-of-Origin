@@ -1,0 +1,11 @@
+{
+  "type": "origins:attribute",
+  "modifier": {
+    "name": "Kingdoms Sovereign March",
+    "attribute": "minecraft:generic.movement_speed",
+    "operation": "multiply_total",
+    "value": 0.15
+  },
+  "name": "Sovereign's March",
+  "description": "A king is never slow to act."
+}

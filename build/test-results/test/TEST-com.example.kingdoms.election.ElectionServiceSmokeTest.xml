@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.kingdoms.election.ElectionServiceSmokeTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-05-28T05:03:19" hostname="Alis-MacBook-Air.local" time="0.024">
+  <properties/>
+  <testcase name="runsHappyPathElectionFlow()" classname="com.example.kingdoms.election.ElectionServiceSmokeTest" time="0.024"/>
+  <system-out><![CDATA[[08:03:19] [Test worker/INFO]: Database opened at /var/folders/6d/sdhwsk5n4xl138k7pbjwsh1h0000gn/T/junit15398883095434693777/kingdoms.db
+[08:03:19] [Test worker/INFO]: Election 1 started for office king [nom 2d / campaign 2d / voting 1d]
+[08:03:19] [Test worker/INFO]: Candidate registered: candidate-1 in election 1
+[08:03:19] [Test worker/INFO]: Election 1 phase: NOMINATION → CAMPAIGN
+[08:03:19] [Test worker/INFO]: Election 1 phase: CAMPAIGN → VOTING
+[08:03:19] [Test worker/INFO]: Vote recorded: voter-1 → candidate-1 (election 1)
+[08:03:19] [Test worker/INFO]: Election 1 phase: VOTING → RESOLVING
+[08:03:19] [Test worker/INFO]: Election 1 resolved — winner: candidate-1
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

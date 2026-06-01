@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.kingdoms.map.MapIntegrationServiceSmokeTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-05-28T05:03:19" hostname="Alis-MacBook-Air.local" time="0.01">
+  <properties/>
+  <testcase name="missingDynmapRuntimeDoesNotCrashMapService()" classname="com.example.kingdoms.map.MapIntegrationServiceSmokeTest" time="0.007"/>
+  <testcase name="missingBlueMapRuntimeDoesNotCrashMapService()" classname="com.example.kingdoms.map.MapIntegrationServiceSmokeTest" time="0.003"/>
+  <system-out><![CDATA[[08:03:19] [Test worker/WARN]: [Kingdoms] Dynmap is not present; skipping map markers.
+[08:03:19] [Test worker/WARN]: [Kingdoms] BlueMap is not present or has an incompatible API; skipping map markers.
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,13 @@
+V[08:03:19] [Test worker/WARN]: Invalid map.provider 'invalid-provider'; using 'none'.
+�[08:03:19] [Test worker/INFO]: Database opened at /var/folders/6d/sdhwsk5n4xl138k7pbjwsh1h0000gn/T/junit2923081086123862290/kingdoms.db
+�[08:03:19] [Test worker/INFO]: Database opened at /var/folders/6d/sdhwsk5n4xl138k7pbjwsh1h0000gn/T/junit15398883095434693777/kingdoms.db
+e[08:03:19] [Test worker/INFO]: Election 1 started for office king [nom 2d / campaign 2d / voting 1d]
+O[08:03:19] [Test worker/INFO]: Candidate registered: candidate-1 in election 1
+I[08:03:19] [Test worker/INFO]: Election 1 phase: NOMINATION → CAMPAIGN
+E[08:03:19] [Test worker/INFO]: Election 1 phase: CAMPAIGN → VOTING
+S[08:03:19] [Test worker/INFO]: Vote recorded: voter-1 → candidate-1 (election 1)
+F[08:03:19] [Test worker/INFO]: Election 1 phase: VOTING → RESOLVING
+K[08:03:19] [Test worker/INFO]: Election 1 resolved — winner: candidate-1
+	W[08:03:19] [Test worker/WARN]: [Kingdoms] Dynmap is not present; skipping map markers.
+	
+s[08:03:19] [Test worker/WARN]: [Kingdoms] BlueMap is not present or has an incompatible API; skipping map markers.

@@ -1,0 +1,13 @@
+{
+  "type": "origins:modify_break_speed",
+  "name": "Obsidian Breaker",
+  "description": "+50% mining speed on Obsidian.",
+  "block_condition": {
+    "type": "origins:block",
+    "block": "minecraft:obsidian"
+  },
+  "modifier": {
+    "operation": "multiply_total",
+    "value": 0.5
+  }
+}

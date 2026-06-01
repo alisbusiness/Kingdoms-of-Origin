@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.kingdoms.config.ConfigLoaderSmokeTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-05-28T05:03:18" hostname="Alis-MacBook-Air.local" time="0.471">
+  <properties/>
+  <testcase name="partialAndInvalidConfigFallsBackToSafeValues()" classname="com.example.kingdoms.config.ConfigLoaderSmokeTest" time="0.466"/>
+  <testcase name="loadsBundledConfig()" classname="com.example.kingdoms.config.ConfigLoaderSmokeTest" time="0.004"/>
+  <system-out><![CDATA[[08:03:19] [Test worker/WARN]: Invalid map.provider 'invalid-provider'; using 'none'.
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

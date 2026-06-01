@@ -1,0 +1,10 @@
+{
+  "type": "origins:modify_harvest",
+  "name": "Ore Doubling",
+  "description": "Ores drop twice as much.",
+  "block_condition": {
+    "type": "origins:in_tag",
+    "tag": "forge:ores"
+  },
+  "allow": true
+}
